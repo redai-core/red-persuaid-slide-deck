@@ -102,9 +102,9 @@ Present a table or numbered list showing:
 **Crucial Stop Point**: Explicitly ask the user:
 1. *"Does this narrative architecture and slide flow align with your goals, or would you like to adjust, add, or remove any slides?"*
 2. *"Which delivery format do you prefer for the final slides?"*
-   - **A. Single-File Interactive HTML (Default / Recommended)** — Standalone deck with 1-click in-browser **"📥 Export .PPTX"** & **"🖨️ PDF"** buttons, keyboard navigation, zero install, instant browser view.
-   - **B. Marp Markdown (`.md`)** — Formatted for Marp CLI / VS Code to export to native `.pptx` or `.pdf`.
-   - **C. In-Chat Markdown Only** — Structured copy in chat.
+   - **A. Single-File Interactive HTML with 1-Click PPTX Export (Default / Recommended)** — Standalone executive deck with built-in PptxGenJS exporter (`📥 Export .PPTX`), keyboard navigation, zero install, instant browser view, prints to vector PDF.
+   - **B. Node.js / JavaScript PptxGenJS Script** — Programmatic `pptxgenjs` script to generate the `.pptx` file directly.
+   - **C. In-Chat Markdown Only** — Structured slide copy in chat.
 
 Wait for the user's explicit feedback and choice before generating Step 3.
 
@@ -135,7 +135,7 @@ Present the complete slide-by-slide copy directly in the conversation following 
 #### Tier 2: Deliverable Artifact Generation
 Alongside the chat output, deliver the slides as a file:
 1. **Interactive HTML with 1-Click PPTX Exporter (Default)**: Generate a standalone, single-file `presentation.html` styled with Tailwind CSS, custom typography, dark executive theme, built-in keyboard navigation (`←`/`→`/`Space`/`F`), and a floating toolbar with a **1-click client-side "📥 Export .PPTX" button** powered by embedded PptxGenJS CDN (zero dependencies, zero CLI setup).
-2. **Marp Markdown / PPTX (On Request)**: If the user requests Marp or native PowerPoint, provide the corresponding Marp `.md` format or generation script.
+2. **PptxGenJS Script (On Request)**: If the user requests a standalone code script, provide the `pptxgenjs` Node script to generate the presentation.
 
 ---
 

@@ -1,14 +1,14 @@
 # Slide Deck Code & Generation Templates
 
-PersuAId prioritizes a **zero-friction, zero-install user experience**. By embedding client-side PowerPoint generation (`pptxgenjs`) and print CSS directly into the single-file HTML deliverable, non-technical users can view slides, present in fullscreen, and download native editable `.pptx` or `.pdf` files **with a single click and zero CLI dependencies**.
+PersuAId is built around a **zero-friction, zero-install architecture powered by PptxGenJS**. By embedding client-side PowerPoint generation (`pptxgenjs`) and print CSS directly into the single-file HTML deliverable, users can view slides, present in fullscreen, and download native editable `.pptx` or `.pdf` files **with a single click and zero CLI dependencies**.
 
 ---
 
-## 1. Zero-Install Interactive HTML + Instant In-Browser PPTX Exporter (Standard Deliverable)
+## 1. Zero-Install Interactive HTML + Instant In-Browser PptxGenJS Exporter (Standard Deliverable)
 
 This single-file HTML deck contains:
-- **Presentation Mode**: Fullscreen, keyboard shortcuts (`←`, `→`, `Space`, `F`), swipe on mobile.
-- **1-Click PPTX Export**: In-browser client-side generator that converts slides into native `.pptx` on click.
+- **Presentation Mode**: Fullscreen, keyboard shortcuts (`←`, `→`, `Space`, `F`), touch navigation.
+- **1-Click PPTX Export**: In-browser client-side generator via PptxGenJS that converts slides into native `.pptx` on click.
 - **1-Click PDF Export**: Clean `@media print` styling for browser "Print to PDF".
 - **Zero Dependencies**: Requires no Node.js, Python, or terminal commands.
 
@@ -23,7 +23,7 @@ This single-file HTML deck contains:
   <title>[Deck Title] — [Client Name]</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Client-side PPTX Generator (Zero install for user) -->
+  <!-- Client-side PPTX Generator via PptxGenJS (Zero install for user) -->
   <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,86 +128,11 @@ This single-file HTML deck contains:
       </div>
     </section>
 
-    <!-- SLIDE: 5-Stage Journey Map (ARCH-JOURNEY-MAP) -->
-    <section class="slide-frame" data-kicker="CONSUMER AI BEHAVIOR" data-title="Buyers query AI across 5 distinct phases — Brand drops off after Discovery">
-      <div class="flex items-center justify-between">
-        <span class="kicker">CONSUMER AI BEHAVIOR</span>
-        <span class="text-xs text-gray-500 font-medium">Prepared by Captain Words</span>
-      </div>
-      <div class="my-auto py-2 space-y-4">
-        <h2 class="text-3xl font-extrabold text-white">Buyers query AI across 5 distinct phases — Brand drops off after Discovery</h2>
-        <div class="grid grid-cols-5 gap-3">
-          <div class="metric-card border-t-2 border-t-emerald-400">
-            <div class="text-xs font-bold text-emerald-400 uppercase">1. Discovery</div>
-            <div class="text-xs text-gray-300 mt-2">"Warna cat ruang tamu yang sejuk 2026"</div>
-            <div class="text-[10px] text-gray-500 mt-2 font-mono">Status: Visible</div>
-          </div>
-          <div class="metric-card border-t-2 border-t-emerald-400">
-            <div class="text-xs font-bold text-emerald-400 uppercase">2. Interest</div>
-            <div class="text-xs text-gray-300 mt-2">"Katalog warna Jotun Majestic 2026"</div>
-            <div class="text-[10px] text-gray-500 mt-2 font-mono">Status: Moderate</div>
-          </div>
-          <div class="metric-card border-t-2 border-t-amber-400">
-            <div class="text-xs font-bold text-amber-400 uppercase">3. Consideration</div>
-            <div class="text-xs text-gray-300 mt-2">"Jotun vs Dulux interior review"</div>
-            <div class="text-[10px] text-amber-400 mt-2 font-mono">Status: Competitor Heavy</div>
-          </div>
-          <div class="metric-card border-t-2 border-t-red-400">
-            <div class="text-xs font-bold text-red-400 uppercase">4. Purchase</div>
-            <div class="text-xs text-gray-300 mt-2">"Toko Jotun terdekat & kalkulator"</div>
-            <div class="text-[10px] text-red-400 mt-2 font-mono">Status: Low Citations</div>
-          </div>
-          <div class="metric-card border-t-2 border-t-emerald-400">
-            <div class="text-xs font-bold text-emerald-400 uppercase">5. After-Purchase</div>
-            <div class="text-xs text-gray-300 mt-2">"Cara membersihkan noda dinding"</div>
-            <div class="text-[10px] text-gray-500 mt-2 font-mono">Status: Moderate</div>
-          </div>
-        </div>
-        <div class="synthesis-box">
-          <span class="text-xs text-gray-300"><strong>What this means:</strong> AI surfaces the brand during top-of-funnel aesthetic inspiration, but defaults to competitors in mid-funnel comparison and purchase calculations.</span>
-        </div>
-      </div>
-      <div class="flex items-center justify-between border-t border-gray-800/80 pt-4 text-xs text-gray-500">
-        <div>Prepared for Jotun · Captain Words</div>
-        <div class="font-mono text-gray-400">2 / 10</div>
-      </div>
-    </section>
-
-    <!-- SLIDE: Technical GEO Scorecard (ARCH-TECH-AUDIT) -->
-    <section class="slide-frame" data-kicker="ON-PAGE TECHNICAL AUDIT" data-title="High domain authority undermined by unstructured page schemas">
-      <div class="flex items-center justify-between">
-        <span class="kicker">ON-PAGE TECHNICAL AUDIT</span>
-        <span class="text-xs text-gray-500 font-medium">Prepared by Captain Words</span>
-      </div>
-      <div class="my-auto py-2 space-y-4">
-        <h2 class="text-3xl font-extrabold text-white">High domain authority undermined by unstructured page schemas</h2>
-        <div class="grid grid-cols-3 gap-4">
-          <div class="metric-card">
-            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-300 uppercase">AI Citability</span><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">58/100</span></div>
-            <p class="text-xs text-gray-400 mt-2">Content structure lacks concise, quotable definition blocks that LLMs extract easily.</p>
-          </div>
-          <div class="metric-card">
-            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-300 uppercase">Content E-E-A-T</span><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">82/100</span></div>
-            <p class="text-xs text-gray-400 mt-2">Strong brand reputation and technical paint specs provide solid baseline authority.</p>
-          </div>
-          <div class="metric-card">
-            <div class="flex justify-between items-center"><span class="text-xs font-bold text-gray-300 uppercase">Schema & Structured Data</span><span class="px-2 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-300">34/100</span></div>
-            <p class="text-xs text-gray-400 mt-2">Missing ProductSchema, FAQSchema, and HowToSchema across top category landing pages.</p>
-          </div>
-        </div>
-        <div class="synthesis-box">
-          <span class="text-xs text-gray-300"><strong>What this means:</strong> Injecting structured data schemas and concise question-answer blocks will immediately elevate domain citability across ChatGPT and Google AI Overviews.</span>
-        </div>
-      </div>
-      <div class="flex items-center justify-between border-t border-gray-800/80 pt-4 text-xs text-gray-500">
-        <div>Prepared for Jotun · Captain Words</div>
-        <div class="font-mono text-gray-400">3 / 10</div>
-      </div>
-    </section>
+    <!-- Additional slides follow the Archetype Catalog -->
 
   </div>
 
-  <!-- Zero-Friction Controller & Export Toolbar -->
+  <!-- Zero-Friction Controller & PptxGenJS Export Toolbar -->
   <div class="no-print fixed bottom-4 right-6 flex items-center space-x-3 bg-gray-900/90 border border-gray-800 px-4 py-2 rounded-full text-xs text-gray-400 backdrop-blur shadow-2xl z-50">
     <button onclick="prevSlide()" class="hover:text-white px-2 py-0.5">← Prev</button>
     <span id="slide-indicator" class="font-mono text-white text-[11px]">1 / 10</span>
@@ -250,10 +175,10 @@ This single-file HTML deck contains:
       else if (e.key === 'End') showSlide(slides.length - 1);
     });
 
-    // Zero-Install Client-Side PowerPoint Exporter
+    // Zero-Install Client-Side PowerPoint Exporter via PptxGenJS
     function downloadPptx() {
       if (typeof PptxGenJS === 'undefined') {
-        alert('PowerPoint generator loading, please try again in a second.');
+        alert('PptxGenJS loading, please try again in a second.');
         return;
       }
       let pptx = new PptxGenJS();
@@ -263,7 +188,7 @@ This single-file HTML deck contains:
         let slide = pptx.addSlide();
         slide.background = { color: '0B0F17' };
 
-        let kicker = s.getAttribute('data-kicker') || 'GEO STRATEGY REPORT';
+        let kicker = s.getAttribute('data-kicker') || 'STRATEGY REPORT';
         let title = s.getAttribute('data-title') || s.querySelector('h1, h2')?.innerText || 'Slide';
         let subtitle = s.getAttribute('data-subtitle') || '';
 
@@ -283,4 +208,51 @@ This single-file HTML deck contains:
   </script>
 </body>
 </html>
+```
+
+---
+
+## 2. Node.js / TypeScript PptxGenJS Script Template
+
+When generating presentations via a Node script using `pptxgenjs`:
+
+```javascript
+import pptxgen from "pptxgenjs";
+
+const pptx = new pptxgen();
+pptx.layout = "LAYOUT_16x9";
+
+// Slide 1: Cover
+const slide1 = pptx.addSlide();
+slide1.background = { color: "0B0F17" };
+
+slide1.addText("GEO STRATEGY REPORT", {
+  x: 0.8,
+  y: 0.8,
+  fontSize: 11,
+  bold: true,
+  color: "10B981",
+  fontFace: "Arial"
+});
+
+slide1.addText("Jotun Indonesia", {
+  x: 0.8,
+  y: 2.2,
+  w: 11.5,
+  fontSize: 44,
+  bold: true,
+  color: "FFFFFF",
+  fontFace: "Arial"
+});
+
+slide1.addText("How AI Engines Recommend Interior Paint in Indonesia", {
+  x: 0.8,
+  y: 3.2,
+  w: 11.5,
+  fontSize: 18,
+  color: "D1D5DB",
+  fontFace: "Arial"
+});
+
+pptx.writeFile({ fileName: "output.pptx" });
 ```

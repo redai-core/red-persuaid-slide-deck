@@ -69,7 +69,7 @@
 ├── references/                       # On-demand reference documentation
 │   ├── slide-archetypes.md           # 17 slide archetypes & visual specs
 │   ├── interview-framework.md        # 10-dimension deep client discovery engine
-│   └── slide-deck-code-templates.md  # Single-file HTML with 1-click PPTX export & Marp templates
+│   └── slide-deck-code-templates.md  # Single-file HTML with PptxGenJS 1-click export templates
 ├── package.sh                        # Builds persuaid.skill for Claude Desktop / Web
 └── README.md
 ```
