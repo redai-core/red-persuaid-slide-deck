@@ -88,7 +88,14 @@ Present a table or numbered list showing:
 - **Core Visual Focus**: (e.g. 4 stat cards + 2-column synthesis)
 - **Narrative Role**: (e.g. Establish the burning problem and quantitative baseline)
 
-**Crucial Stop Point**: Explicitly ask the user: *"Does this narrative architecture and slide flow align with your goals, or would you like to adjust, add, or remove any slides before we generate the full content?"* Wait for approval.
+**Crucial Stop Point**: Explicitly ask the user:
+1. *"Does this narrative architecture and slide flow align with your goals, or would you like to adjust, add, or remove any slides?"*
+2. *"Which delivery format do you prefer for the final slides?"*
+   - **A. Single-File Interactive HTML (Default / Recommended)** — Self-contained dark-mode web deck with keyboard navigation (`←`/`→`/`Space`/`F`), zero setup, instant browser viewing, prints to vector PDF.
+   - **B. Marp Markdown (`.md`)** — Formatted for Marp CLI / VS Code extension to export natively to `.pptx` or `.pdf`.
+   - **C. In-Chat Markdown Only** — Raw structured slide copy to copy-paste.
+
+Wait for the user's explicit feedback and choice before generating Step 3.
 
 ---
 
