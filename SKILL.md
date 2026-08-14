@@ -94,7 +94,10 @@ Present a table or numbered list showing:
 
 ### Step 3: Content Generation & Production
 
-Upon approval of the architecture, generate the full slide-by-slide content. Each slide specification must follow this standard format:
+Upon approval of the architecture, generate the presentation in **two tiers**:
+
+#### Tier 1: In-Chat Structured Slide Deck
+Present the complete slide-by-slide copy directly in the conversation following this standard format:
 
 ```markdown
 ### SLIDE [N]: [Slide Name]
@@ -111,7 +114,10 @@ Upon approval of the architecture, generate the full slide-by-slide content. Eac
 - **Footer**: Prepared for [Brand] · [Presenter/Agency] · Slide [N]
 ```
 
-If the user requests exportable code or presentation files, offer the implementation options from `references/slide-deck-code-templates.md` (Single-file HTML with Tailwind CSS, Marp Markdown, or Python-pptx script).
+#### Tier 2: Deliverable Artifact Generation
+Alongside the chat output, deliver the slides as a file:
+1. **Interactive HTML (Default)**: Generate a standalone, single-file `presentation.html` (or `[client]-deck.html`) styled with Tailwind CSS, custom fonts, dark executive theme, and built-in keyboard navigation (`←`, `→`, `Space`, `F` for fullscreen). This requires zero dependencies and prints to vector PDF.
+2. **Marp Markdown / PPTX (On Request)**: If the user requests Marp or native PowerPoint, provide the corresponding Marp `.md` format or `pptxgenjs`/`python-pptx` generation script.
 
 ---
 
