@@ -1,0 +1,10 @@
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Build & distribution artifacts
+dist/
+*.skill
