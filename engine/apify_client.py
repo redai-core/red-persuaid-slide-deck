@@ -178,54 +178,11 @@ class ApifyClient:
         chunk_size: int = 50,
     ) -> List[AuditResult]:
         """
-        Audits ChatGPT via calming_monument/ai-search-citation-scraper (Camoufox residential stealth)
-        in a single batched run, with fallback to fayoussef/bulk-llm-runner.
+        Audits ChatGPT responses using fast, search-grounded cloud LLM runner (fayoussef/bulk-llm-runner).
+        Note: Browser-based Camoufox scraper is disabled to eliminate latency and timeout bottlenecks.
         """
         all_results: List[AuditResult] = []
 
-        # Try custom stealth Camoufox actor first in a single batch
-        try:
-            for i in range(0, len(queries), chunk_size):
-                chunk = queries[i : i + chunk_size]
-                payload = {
-                    "queries": chunk,
-                    "platform": "chatgpt",
-                    "brand_name": brand_name,
-                    "brand_domain": brand_domain,
-                    "competitors": competitors or [],
-                }
-                timeout = max(400, len(chunk) * 100)
-                items = self.run_actor_and_get_dataset(self.ACTOR_ID_CHATGPT_STEALTH, payload, timeout_seconds=timeout)
-                for item in items:
-                    q_text = item.get("query", "")
-                    resp_text = item.get("raw_response_text", item.get("text", ""))
-                    brand_cited = item.get("brand_cited", False)
-                    raw_cits = item.get("citations", [])
-                    citations = []
-                    for c in raw_cits:
-                        u = c.get("url") if isinstance(c, dict) else str(c)
-                        t = c.get("title") if isinstance(c, dict) else None
-                        if u and u.startswith("http"):
-                            citations.append(Citation.from_url(u, title=t))
-
-                    res = AuditResult(
-                        platform="chatgpt",
-                        account_id="apify_camoufox_stealth",
-                        query=q_text,
-                        brand_name=brand_name,
-                        brand_cited=brand_cited or (brand_name.lower() in resp_text.lower() if brand_name else False),
-                        citations=citations,
-                        raw_response_text=resp_text,
-                        response_length=len(resp_text),
-                        duration_seconds=5.0,
-                    )
-                    all_results.append(res)
-            if all_results:
-                return all_results
-        except Exception as e:
-            print(f"        ⚠️ Stealth ChatGPT scraper error ({e}), falling back to bulk-llm-runner...")
-
-        # Fallback to bulk-llm-runner with search grounding in a single batch
         for i in range(0, len(queries), chunk_size):
             chunk = queries[i : i + chunk_size]
             payload = {
@@ -234,7 +191,7 @@ class ApifyClient:
                 "enable_web_search": True,
                 "max_tokens": 1200,
             }
-            timeout = max(180, len(chunk) * 20)
+            timeout = max(120, len(chunk) * 15)
             items = self.run_actor_and_get_dataset(self.ACTOR_ID_BULK, payload, timeout_seconds=timeout)
             for item in items:
                 q_text = item.get("prompt", item.get("query", ""))
@@ -249,7 +206,7 @@ class ApifyClient:
                 brand_cited = brand_name.lower() in resp_text.lower() if brand_name else False
                 res = AuditResult(
                     platform="chatgpt",
-                    account_id="apify_bulk_llm",
+                    account_id="apify_chatgpt_search",
                     query=q_text,
                     brand_name=brand_name,
                     brand_cited=brand_cited,
