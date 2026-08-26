@@ -7,7 +7,7 @@ Endpoints:
 - GET  /health, /     : Healthcheck, server capability manifest, and Claude discovery
 - GET  /sse           : Standard MCP Server-Sent Events stream for remote AI agents (Claude Desktop, Cursor, ZCode)
 - POST /messages      : Session-scoped message handler for SSE transport
-- POST /mcp, /jsonrpc : Direct HTTP JSON-RPC 2.0 endpoint
+- POST /sse, /mcp, /  : Direct HTTP JSON-RPC 2.0 endpoints for Claude connectors and stateless tools
 - GET  /.well-known/* : Auto-discovery manifests for Claude / MCP client connectors
 """
 
@@ -69,7 +69,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Baggage, Sentry-Trace")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Baggage, Sentry-Trace, Mcp-Session-Id")
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -79,8 +79,8 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
-        if path in ["/health", "/", "", "/sse", "/mcp", "/jsonrpc", "/.well-known/mcp"]:
+        path = parsed.path.rstrip("/")
+        if path in ["/health", "/", "", "/sse", "/mcp", "/jsonrpc", "/.well-known/mcp", "/messages"]:
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -96,7 +96,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
         params = dict(urllib.parse.parse_qsl(parsed.query))
 
         # Well-known MCP and OAuth discovery endpoints
-        if path in ["/.well-known/mcp", "/.well-known/oauth-protected-resource"]:
+        if path in ["/.well-known/mcp", "/.well-known/oauth-protected-resource", "/.well-known/oauth-authorization-server"]:
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -106,7 +106,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
                 "endpoints": {
                     "sse": "/sse",
                     "messages": "/messages",
-                    "http": "/mcp"
+                    "http": "/sse"
                 },
                 "serverInfo": SERVER_INFO,
                 "authentication": "none" if not AUTH_TOKEN else "bearer"
@@ -137,7 +137,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
                     "transports": {
                         "sse": "/sse",
                         "messages": "/messages?session_id=<session_id>",
-                        "direct_http": "/mcp",
+                        "direct_http": "/sse",
                     }
                 },
                 "tools_count": len(TOOLS),
@@ -221,8 +221,33 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {e}"}}).encode("utf-8"))
             return
 
-        if path in ["/mcp", "/jsonrpc", ""]:
-            # Direct HTTP JSON-RPC endpoint
+        session_id = params.get("session_id", "").strip() or self.headers.get("Mcp-Session-Id", "").strip()
+
+        # If it's a message for an active SSE stream session
+        if path in ["/messages", "/sse/messages"] and session_id and session_id in active_sse_queues:
+            self.send_response(202)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            resp_bytes = json.dumps({"status": "accepted"}).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp_bytes)))
+            self.end_headers()
+            self.wfile.write(resp_bytes)
+
+            def async_worker(sess_id: str, rpc_payload: dict):
+                try:
+                    response = handle_jsonrpc_request(rpc_payload)
+                    if response is not None:
+                        q = active_sse_queues.get(sess_id)
+                        if q:
+                            q.put(response)
+                except Exception as ex:
+                    logger.error(f"Error processing async SSE RPC message: {ex}")
+
+            threading.Thread(target=async_worker, args=(session_id, payload), daemon=True).start()
+            return
+
+        # Direct HTTP JSON-RPC endpoint for all standard MCP POST paths (including /sse, /, /mcp, /messages)
+        if path in ["/sse", "/mcp", "/jsonrpc", "/messages", "", "/api"]:
             response = handle_jsonrpc_request(payload)
             if response is None:
                 self.send_response(204)
@@ -237,39 +262,6 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(resp_data)))
             self.end_headers()
             self.wfile.write(resp_data)
-            return
-
-        elif path == "/messages":
-            session_id = params.get("session_id", "").strip()
-            if not session_id or session_id not in active_sse_queues:
-                self.send_response(404)
-                self._send_cors_headers()
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": f"Session '{session_id}' not found or closed."}).encode("utf-8"))
-                return
-
-            # Respond immediately with 202 Accepted
-            self.send_response(202)
-            self._send_cors_headers()
-            self.send_header("Content-Type", "application/json")
-            resp_bytes = json.dumps({"status": "accepted"}).encode("utf-8")
-            self.send_header("Content-Length", str(len(resp_bytes)))
-            self.end_headers()
-            self.wfile.write(resp_bytes)
-
-            # Process asynchronously in worker thread and push result down the SSE connection
-            def async_worker(sess_id: str, rpc_payload: dict):
-                try:
-                    response = handle_jsonrpc_request(rpc_payload)
-                    if response is not None:
-                        q = active_sse_queues.get(sess_id)
-                        if q:
-                            q.put(response)
-                except Exception as ex:
-                    logger.error(f"Error processing async SSE RPC message: {ex}")
-
-            threading.Thread(target=async_worker, args=(session_id, payload), daemon=True).start()
             return
 
         else:
