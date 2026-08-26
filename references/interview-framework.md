@@ -70,7 +70,7 @@ Once the client provides their business context from Part 1, **PersuAId does NOT
 
 ## Interview & Execution Protocol
 
-1. **Trigger Interactive Question Popup (`AskUserQuestion`)**: In Step 1, invoke the interactive question tool (`AskUserQuestion`) with structured questions (Brand & Scope, Competitors, Target Audience & USPs) offering smart defaults + custom text input fields (`Other`).
-2. **Hard Stop**: Stop your turn immediately on the interactive question tool call and wait for the client's answers.
-3. **Execute AI Reverse-Prompting (Step 1.5)**: Reverse-prompt ChatGPT / Gemini to extract authentic user queries into `queries.json`, then execute the live batch audit and aggregate quantitative metrics into `metrics.json`.
-4. **Architect Slides (Step 2)**: Present the narrative architecture populated with real audit metrics and ask for approval via `AskUserQuestion`.
+1. **Structured Discovery (`AskUserQuestion`)**: In Step 1, present focused questions (Brand & Scope, Competitors, Target Audience & USPs) offering smart defaults and custom text input options.
+2. **Consultative Confirmation**: Wait for the client's confirmation before moving to the narrative structure.
+3. **Search Journey Modeling (Step 1.5)**: Formulate the authentic user query taxonomy across all 5 buying stages, execute the audit, and aggregate metrics.
+4. **Narrative Architecture (Step 2)**: Present the slide-by-slide storyline populated with audit metrics and confirm alignment before generating the deck.
