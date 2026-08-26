@@ -238,7 +238,14 @@ def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
                 res = client.audit_chatgpt(queries=[query], brand_name=brand_name)
 
             for r in res:
-                results_data.append(r.to_dict())
+                if hasattr(r, "to_dict"):
+                    results_data.append(r.to_dict())
+                elif hasattr(r, "model_dump"):
+                    results_data.append(r.model_dump(mode="json"))
+                elif isinstance(r, dict):
+                    results_data.append(r)
+                else:
+                    results_data.append(vars(r))
         except Exception as e:
             logger.error(f"Error auditing {plat} query: {e}")
             results_data.append({

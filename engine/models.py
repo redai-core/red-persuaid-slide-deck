@@ -24,17 +24,23 @@ try:
                 domain = domain[4:]
             return cls(url=url, domain=domain, title=title)
 
+        def to_dict(self) -> dict:
+            return self.model_dump(mode="json")
+
     class AuditResult(BaseModel):
         platform: str
         account_id: str
         query: str
-        brand_name: Optional[str] = None
-        brand_cited: bool = False
-        citations: List[Citation] = Field(default_factory=list)
         raw_response_text: str
         response_length: int
         duration_seconds: float
+        brand_name: Optional[str] = None
+        brand_cited: bool = False
+        citations: List[Citation] = Field(default_factory=list)
         timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+        def to_dict(self) -> dict:
+            return self.model_dump(mode="json")
 
     class AccountInfo(BaseModel):
         platform: str
@@ -48,6 +54,9 @@ try:
             if self.rate_limited_until and datetime.now(timezone.utc) > self.rate_limited_until:
                 return True
             return False
+
+        def to_dict(self) -> dict:
+            return self.model_dump(mode="json")
 
 except ImportError:
     from dataclasses import dataclass, field, asdict
@@ -69,6 +78,9 @@ except ImportError:
         def model_dump(self, mode: str = "json") -> dict:
             return asdict(self)
 
+        def to_dict(self) -> dict:
+            return asdict(self)
+
     @dataclass
     class AuditResult:
         platform: str
@@ -86,7 +98,15 @@ except ImportError:
             d = asdict(self)
             if isinstance(d.get("timestamp"), datetime):
                 d["timestamp"] = d["timestamp"].isoformat()
+            if "citations" in d:
+                d["citations"] = [
+                    asdict(c) if hasattr(c, "__dataclass_fields__") else c
+                    for c in d["citations"]
+                ]
             return d
+
+        def to_dict(self) -> dict:
+            return self.model_dump(mode="json")
 
     @dataclass
     class AccountInfo:
@@ -101,3 +121,9 @@ except ImportError:
             if self.rate_limited_until and datetime.now(timezone.utc) > self.rate_limited_until:
                 return True
             return False
+
+        def to_dict(self) -> dict:
+            d = asdict(self)
+            if isinstance(d.get("rate_limited_until"), datetime):
+                d["rate_limited_until"] = d["rate_limited_until"].isoformat()
+            return d
