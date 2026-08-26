@@ -66,8 +66,8 @@ When initiating a new presentation or audit (e.g., `/persuaid create GEO audit f
 
 When your environment has the PersuAId MCP tools connected:
 
-1. **Invoke the MCP Tool**:
-   Call **`persuaid_run_pipeline`** directly using your tool calling capabilities:
+1. **Launch the Cloud Audit (`persuaid_start_pipeline`)**:
+   Call **`persuaid_start_pipeline`** with the brief parameters:
    ```json
    {
      "brand": "<Brand Name>",
@@ -77,14 +77,21 @@ When your environment has the PersuAId MCP tools connected:
      "geo": "<Geographic Market>"
    }
    ```
-   *(Do NOT execute local bash scripts, terminal commands, or manual web scraping. The connected MCP server handles the entire 5-stage search journey modeling, multi-platform audit, and metric calculation in the cloud).*
+   *This tool returns immediately (<0.5s) with a `job_id` and zero risk of client timeouts.*
 
-2. **Ingest the Returned MCP Data**:
-   The MCP tool returns the complete analytical dataset:
-   - **Share of Voice (SoV) %** & **#1 Recommendation Win Rate %**
-   - **5-Stage Search Journey Visibility** (Discovery, Interest, Consideration, Purchase, After-Purchase)
-   - **Competitor Presence Rates** & **Citation Domain Authority Breakdown**
-   - Generated prompt taxonomy deliverables
+2. **Retrieve the Results (`persuaid_get_pipeline_status`)**:
+   Call **`persuaid_get_pipeline_status`** using the returned `job_id` (or `brand`):
+   ```json
+   {
+     "job_id": "<job_id>"
+   }
+   ```
+   - If `status: "running"`, wait ~15-20 seconds and call `persuaid_get_pipeline_status` again.
+   - When `status: "completed"`, it returns the full analytical dataset:
+     - **Share of Voice (SoV) %** & **#1 Recommendation Win Rate %**
+     - **5-Stage Funnel Visibility** (Discovery, Interest, Consideration, Purchase, After-Purchase)
+     - **Competitor Presence Rates** & **Citation Domain Breakdown**
+     - Inline CSV prompt taxonomy contents (`csv_itemized_content` & `csv_matrix_content`)
 
 3. **Fallback (Pure Chat Environments Only)**:
    If no MCP tools are connected to your session, formulate an authentic 5-stage search journey taxonomy and model realistic GEO benchmarks based on category market dynamics.

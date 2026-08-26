@@ -6,7 +6,7 @@ and secure credentials manager as standardized MCP tools over stdio.
 
 Runs with pure Python standard library (zero external pip dependencies).
 Compatible with all MCP clients: ZCode, Claude Desktop, Cursor, Zed, Goose, Roo Code.
-Includes in-flight request deduplication and result caching to prevent double actor charges on client retries.
+Includes asynchronous job dispatching, in-flight deduplication, and result caching.
 """
 
 import sys
@@ -16,6 +16,7 @@ import logging
 import hashlib
 import time
 import threading
+import uuid
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
@@ -47,7 +48,7 @@ from scripts.run_audit_pipeline import run_pipeline
 
 SERVER_INFO = {
     "name": "persuaid-mcp",
-    "version": "1.3.0",
+    "version": "1.4.0",
 }
 
 SERVER_CAPABILITIES = {
@@ -56,6 +57,105 @@ SERVER_CAPABILITIES = {
 
 TOOLS = [
     {
+        "name": "persuaid_start_pipeline",
+        "description": "Starts the complete Step 1.5 GEO audit pipeline in the background and returns immediately with a job_id (<1s response). Zero risk of client timeouts. Check progress and retrieve results via persuaid_get_pipeline_status.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand": {
+                    "type": "string",
+                    "description": "The client brand name (e.g. 'Siloam International Hospital', 'Electrum').",
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Product or service category (e.g. 'healthcare network', 'motor listrik').",
+                },
+                "competitors": {
+                    "type": "string",
+                    "description": "Comma-separated list of top benchmark competitors.",
+                },
+                "geo": {
+                    "type": "string",
+                    "default": "Indonesia",
+                    "description": "Geographic market (e.g. 'Indonesia', 'Global').",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Official brand website domain (e.g. 'siloamhospitals.com').",
+                },
+                "platform": {
+                    "type": "string",
+                    "default": "chatgpt,gemini",
+                    "description": "Target AI platforms ('chatgpt', 'gemini', or 'chatgpt,gemini').",
+                },
+                "samples_per_stage": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Number of sample queries to audit per stage (default: 1).",
+                },
+            },
+            "required": ["brand", "category", "competitors"],
+        },
+    },
+    {
+        "name": "persuaid_get_pipeline_status",
+        "description": "Polls the status of an active or completed background GEO audit job. When status is 'completed', returns the full metrics object, Share of Voice %, and CSV prompt taxonomy contents inline.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string",
+                    "description": "The job_id returned by persuaid_start_pipeline.",
+                },
+                "brand": {
+                    "type": "string",
+                    "description": "Optional brand name to find the latest job if job_id is omitted.",
+                },
+            },
+        },
+    },
+    {
+        "name": "persuaid_run_pipeline",
+        "description": "Runs the complete Step 1.5 GEO audit pipeline synchronously (blocking). Generates 5-stage search journey query taxonomy, exports CSV matrix, audits ChatGPT and Gemini via cloud Apify actors in parallel, and returns comprehensive metrics and CSV content inline.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand": {
+                    "type": "string",
+                    "description": "The client brand name.",
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Product or service category.",
+                },
+                "competitors": {
+                    "type": "string",
+                    "description": "Comma-separated list of top competitors.",
+                },
+                "geo": {
+                    "type": "string",
+                    "default": "Indonesia",
+                    "description": "Geographic market.",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Official brand website domain.",
+                },
+                "platform": {
+                    "type": "string",
+                    "default": "chatgpt,gemini",
+                    "description": "Target AI platforms.",
+                },
+                "samples_per_stage": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Number of sample queries per stage (default: 1).",
+                },
+            },
+            "required": ["brand", "category", "competitors"],
+        },
+    },
+    {
         "name": "persuaid_audit_query",
         "description": "Audits a single search query on ChatGPT, Google Gemini (AI Overviews), or both to evaluate brand presence, citation domains, and competitor mentions.",
         "inputSchema": {
@@ -63,7 +163,7 @@ TOOLS = [
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "The search prompt or question to audit (e.g. 'Rekomendasi motor listrik terbaik di Indonesia').",
+                    "description": "The search prompt or question to audit.",
                 },
                 "platform": {
                     "type": "string",
@@ -77,7 +177,7 @@ TOOLS = [
                 },
                 "brand_domain": {
                     "type": "string",
-                    "description": "The client website domain (e.g. 'electrum.id') to check in grounding sources.",
+                    "description": "The client website domain.",
                 },
                 "competitors": {
                     "type": "array",
@@ -86,52 +186,6 @@ TOOLS = [
                 },
             },
             "required": ["query"],
-        },
-    },
-    {
-        "name": "persuaid_run_pipeline",
-        "description": "Runs the complete Step 1.5 GEO audit pipeline in one command: generates 5-stage search journey query taxonomy, exports CSV matrix, audits ChatGPT and Gemini via cloud Apify actors, and calculates comprehensive metrics and CSV content inline.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "brand": {
-                    "type": "string",
-                    "description": "The client brand name (e.g. 'Electrum', 'Siloam International Hospital').",
-                },
-                "category": {
-                    "type": "string",
-                    "description": "Product or service category (e.g. 'motor listrik', 'healthcare network').",
-                },
-                "competitors": {
-                    "type": "string",
-                    "description": "Comma-separated list of top competitors to benchmark against.",
-                },
-                "geo": {
-                    "type": "string",
-                    "default": "Indonesia",
-                    "description": "Geographic market (e.g. 'Indonesia', 'Global').",
-                },
-                "domain": {
-                    "type": "string",
-                    "description": "Official brand website domain (e.g. 'electrum.id', 'siloamhospitals.com').",
-                },
-                "platform": {
-                    "type": "string",
-                    "default": "chatgpt,gemini",
-                    "description": "Target AI platforms ('chatgpt', 'gemini', or 'chatgpt,gemini').",
-                },
-                "samples_per_stage": {
-                    "type": "integer",
-                    "default": 1,
-                    "description": "Number of sample queries to audit per stage (default: 1 for fast 30s response).",
-                },
-                "reverse_prompt": {
-                    "type": "boolean",
-                    "default": True,
-                    "description": "Whether to reverse-prompt authentic queries or use template taxonomy.",
-                },
-            },
-            "required": ["brand", "category", "competitors"],
         },
     },
     {
@@ -157,10 +211,6 @@ TOOLS = [
                     "default": "Indonesia",
                     "description": "Geographic scope.",
                 },
-                "out": {
-                    "type": "string",
-                    "description": "Optional output filepath to save queries JSON.",
-                },
             },
             "required": ["brand", "category", "competitors"],
         },
@@ -182,10 +232,6 @@ TOOLS = [
                 "brand_domain": {
                     "type": "string",
                     "description": "Optional official website domain.",
-                },
-                "out": {
-                    "type": "string",
-                    "description": "Optional output filepath to save metrics.json.",
                 },
             },
             "required": ["results_file", "brand"],
@@ -213,14 +259,15 @@ TOOLS = [
 
 
 # ==============================================================================
-# Idempotency & In-Flight Request Deduplication Layer
-# Prevents duplicate Apify Actor runs and double charges when MCP clients retry
+# Idempotency, In-Flight Deduplication, and Background Job Registry
 # ==============================================================================
 
 _RESULT_CACHE: Dict[str, tuple] = {}
 _IN_FLIGHT: Dict[str, tuple] = {}
+_PIPELINE_JOBS: Dict[str, Dict[str, Any]] = {}
 _IDEMPOTENCY_LOCK = threading.Lock()
-CACHE_TTL_SECONDS = 7200  # Cache valid for 2 hours
+_JOBS_LOCK = threading.Lock()
+CACHE_TTL_SECONDS = 7200  # 2 hours
 
 
 def _get_cache_key(prefix: str, data: dict) -> str:
@@ -234,7 +281,6 @@ def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
     platform = args.get("platform", "chatgpt").lower()
     brand_name = args.get("brand_name", "")
     brand_domain = args.get("brand_domain", "")
-    competitors = args.get("competitors", [])
 
     cache_key = _get_cache_key("audit", {
         "query": query.strip().lower(),
@@ -245,7 +291,6 @@ def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
 
     now = time.time()
 
-    # 1. Check completed cache
     with _IDEMPOTENCY_LOCK:
         if cache_key in _RESULT_CACHE:
             ts, cached_res = _RESULT_CACHE[cache_key]
@@ -253,7 +298,6 @@ def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
                 logger.info(f"⚡ [IDEMPOTENT] Returning cached audit result for key: {cache_key}")
                 return cached_res
 
-        # 2. Check in-flight run
         if cache_key in _IN_FLIGHT:
             event, container = _IN_FLIGHT[cache_key]
             is_worker = False
@@ -263,13 +307,11 @@ def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
             _IN_FLIGHT[cache_key] = (event, container)
             is_worker = True
 
-    # If already running elsewhere, wait for completion
     if not is_worker:
         logger.info(f"⏳ [IN-FLIGHT DEDUP] Waiting for existing audit run: {cache_key}")
         event.wait(timeout=180)
         return container.get("result", {"status": "error", "error": "In-flight audit timed out."})
 
-    # Main worker execution
     try:
         token = resolve_apify_token()
         if not token:
@@ -346,7 +388,6 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
 
     now = time.time()
 
-    # 1. Check completed cache
     with _IDEMPOTENCY_LOCK:
         if cache_key in _RESULT_CACHE:
             ts, cached_res = _RESULT_CACHE[cache_key]
@@ -354,7 +395,6 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
                 logger.info(f"⚡ [IDEMPOTENT] Returning cached pipeline result for: {brand} ({cache_key})")
                 return cached_res
 
-        # 2. Check in-flight run
         if cache_key in _IN_FLIGHT:
             event, container = _IN_FLIGHT[cache_key]
             is_worker = False
@@ -364,13 +404,11 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
             _IN_FLIGHT[cache_key] = (event, container)
             is_worker = True
 
-    # If already running elsewhere (e.g. client timeout retry), wait for the active run
     if not is_worker:
-        logger.info(f"⏳ [IN-FLIGHT DEDUP] Client retry detected for pipeline '{brand}'. Waiting on active cloud run ({cache_key})...")
+        logger.info(f"⏳ [IN-FLIGHT DEDUP] Waiting on active cloud run for '{brand}' ({cache_key})...")
         event.wait(timeout=180)
         return container.get("result", {"status": "error", "error": "In-flight pipeline run timed out."})
 
-    # Main worker execution
     try:
         pipeline_output = run_pipeline(
             brand=brand,
@@ -421,6 +459,167 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
         with _IDEMPOTENCY_LOCK:
             event.set()
             _IN_FLIGHT.pop(cache_key, None)
+
+
+def handle_persuaid_start_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
+    """Asynchronously starts the GEO audit pipeline and returns immediately (<0.2s)."""
+    brand = args["brand"]
+    category = args["category"]
+    competitors = args["competitors"]
+    geo = args.get("geo", "Indonesia")
+    domain = args.get("domain")
+    platform = args.get("platform", "chatgpt,gemini")
+    samples_per_stage = args.get("samples_per_stage", 1)
+
+    canonical_key = _get_cache_key("pipeline", {
+        "brand": brand.strip().lower(),
+        "domain": (domain or "").strip().lower(),
+        "category": category.strip().lower(),
+        "competitors": sorted([c.strip().lower() for c in competitors.split(",") if c.strip()]),
+        "geo": geo.strip().lower(),
+        "platform": platform.strip().lower(),
+        "samples_per_stage": samples_per_stage,
+    })
+
+    now = time.time()
+
+    # 1. If result is already cached, return ready
+    with _IDEMPOTENCY_LOCK:
+        if canonical_key in _RESULT_CACHE:
+            ts, cached_res = _RESULT_CACHE[canonical_key]
+            if now - ts < CACHE_TTL_SECONDS:
+                job_id = f"job_{canonical_key.split(':')[1][:10]}"
+                with _JOBS_LOCK:
+                    _PIPELINE_JOBS[job_id] = {
+                        "job_id": job_id,
+                        "cache_key": canonical_key,
+                        "status": "completed",
+                        "brand": brand,
+                        "start_time": ts,
+                        "duration_seconds": 0.05,
+                        "result": cached_res,
+                        "progress": "Loaded from cache.",
+                    }
+                return {
+                    "status": "completed",
+                    "job_id": job_id,
+                    "brand": brand,
+                    "ready": True,
+                    "message": f"Audit already completed for {brand}. Call persuaid_get_pipeline_status with job_id '{job_id}' to retrieve all data.",
+                }
+
+    # 2. If already running in background, return active job_id
+    with _JOBS_LOCK:
+        for j_id, j_data in _PIPELINE_JOBS.items():
+            if j_data.get("cache_key") == canonical_key and j_data.get("status") == "running":
+                elapsed = round(time.time() - j_data["start_time"], 1)
+                return {
+                    "status": "already_running",
+                    "job_id": j_id,
+                    "brand": brand,
+                    "ready": False,
+                    "elapsed_seconds": elapsed,
+                    "message": f"Audit for {brand} is actively executing in background ({elapsed}s elapsed). Check status via persuaid_get_pipeline_status.",
+                }
+
+    # 3. Create fresh background job
+    job_id = f"job_{uuid.uuid4().hex[:10]}"
+    job_record = {
+        "job_id": job_id,
+        "cache_key": canonical_key,
+        "brand": brand,
+        "category": category,
+        "status": "running",
+        "progress": "Auditing ChatGPT and Google Gemini in parallel via Apify Cloud...",
+        "start_time": time.time(),
+        "result": None,
+        "error": None,
+    }
+    with _JOBS_LOCK:
+        _PIPELINE_JOBS[job_id] = job_record
+
+    def async_runner():
+        try:
+            res = handle_persuaid_run_pipeline(args)
+            with _JOBS_LOCK:
+                job_record["status"] = "completed" if res.get("status") == "success" else "error"
+                job_record["duration_seconds"] = round(time.time() - job_record["start_time"], 1)
+                job_record["result"] = res
+                job_record["progress"] = "Audit completed successfully."
+        except Exception as ex:
+            with _JOBS_LOCK:
+                job_record["status"] = "error"
+                job_record["error"] = str(ex)
+                job_record["progress"] = f"Failed: {ex}"
+
+    threading.Thread(target=async_runner, daemon=True).start()
+
+    return {
+        "status": "started",
+        "job_id": job_id,
+        "brand": brand,
+        "ready": False,
+        "message": f"GEO audit pipeline successfully launched in the background for {brand}. Please poll persuaid_get_pipeline_status with job_id '{job_id}' (e.g. after ~20 seconds).",
+    }
+
+
+def handle_persuaid_get_pipeline_status(args: Dict[str, Any]) -> Dict[str, Any]:
+    """Polls the status of a background GEO audit job."""
+    job_id = args.get("job_id", "").strip()
+    brand = args.get("brand", "").strip().lower()
+
+    with _JOBS_LOCK:
+        job = _PIPELINE_JOBS.get(job_id)
+        if not job and brand:
+            for j in reversed(list(_PIPELINE_JOBS.values())):
+                if j.get("brand", "").lower() == brand:
+                    job = j
+                    break
+
+        if not job:
+            return {
+                "status": "not_found",
+                "ready": False,
+                "error": f"No active or completed job found for job_id='{job_id}'. Call persuaid_start_pipeline to start an audit.",
+            }
+
+        status = job.get("status")
+        elapsed = round(time.time() - job["start_time"], 1)
+
+        if status == "running":
+            return {
+                "status": "running",
+                "job_id": job["job_id"],
+                "brand": job["brand"],
+                "ready": False,
+                "elapsed_seconds": elapsed,
+                "progress": job.get("progress", "Auditing search engines in parallel..."),
+                "message": f"Audit is actively running ({elapsed}s elapsed). Please wait ~15-20 seconds and check again.",
+            }
+
+        elif status == "completed":
+            res = job.get("result", {})
+            return {
+                "status": "completed",
+                "job_id": job["job_id"],
+                "brand": job["brand"],
+                "ready": True,
+                "duration_seconds": job.get("duration_seconds", elapsed),
+                "metrics": res.get("metrics"),
+                "csv_itemized_content": res.get("csv_itemized_content", ""),
+                "csv_matrix_content": res.get("csv_matrix_content", ""),
+                "itemized_csv_filename": res.get("itemized_csv_filename", ""),
+                "matrix_csv_filename": res.get("matrix_csv_filename", ""),
+                "total_queries_audited": res.get("total_queries_audited", 0),
+            }
+
+        else:
+            return {
+                "status": "error",
+                "job_id": job["job_id"],
+                "ready": True,
+                "error": job.get("error") or "Pipeline execution encountered an error.",
+            }
 
 
 def handle_persuaid_format_queries(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -530,8 +729,10 @@ def handle_persuaid_configure_credentials(args: Dict[str, Any]) -> Dict[str, Any
 
 
 TOOL_HANDLERS = {
-    "persuaid_audit_query": handle_persuaid_audit_query,
+    "persuaid_start_pipeline": handle_persuaid_start_pipeline,
+    "persuaid_get_pipeline_status": handle_persuaid_get_pipeline_status,
     "persuaid_run_pipeline": handle_persuaid_run_pipeline,
+    "persuaid_audit_query": handle_persuaid_audit_query,
     "persuaid_format_queries": handle_persuaid_format_queries,
     "persuaid_aggregate_metrics": handle_persuaid_aggregate_metrics,
     "persuaid_configure_credentials": handle_persuaid_configure_credentials,
@@ -547,12 +748,10 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if not method:
         return None
 
-    # Handle JSON-RPC Notifications (no response needed)
     if method == "notifications/initialized":
         logger.info("Client MCP handshake completed.")
         return None
 
-    # 1. initialize
     if method == "initialize":
         return {
             "jsonrpc": "2.0",
@@ -564,7 +763,6 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             },
         }
 
-    # 2. ping
     if method == "ping":
         return {
             "jsonrpc": "2.0",
@@ -572,7 +770,6 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "result": {},
         }
 
-    # 3. tools/list
     if method == "tools/list":
         return {
             "jsonrpc": "2.0",
@@ -582,7 +779,6 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             },
         }
 
-    # 4. tools/call
     if method == "tools/call":
         tool_name = params.get("name")
         tool_args = params.get("arguments", {})
@@ -629,7 +825,6 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                 },
             }
 
-    # Unknown method
     return {
         "jsonrpc": "2.0",
         "id": req_id,
@@ -640,13 +835,11 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     }
 
 
-# Expose both function names for compatibility
 handle_jsonrpc_request = process_json_rpc
 
 
 def run_stdio_server():
-    """Main stdio loop reading JSON-RPC 2.0 lines from stdin and writing responses to stdout."""
-    logger.info("PersuAId MCP Server v1.3.0 started on stdio.")
+    logger.info("PersuAId MCP Server v1.4.0 started on stdio.")
     
     while True:
         try:
