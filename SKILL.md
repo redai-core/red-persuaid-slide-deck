@@ -77,21 +77,22 @@ When your environment has the PersuAId MCP tools connected:
      "geo": "<Geographic Market>"
    }
    ```
-   *This tool returns immediately (<0.5s) with a `job_id` and zero risk of client timeouts.*
+   *This launches the cloud audit in background worker threads and returns immediately with a `job_id`.*
 
-2. **Retrieve the Results (`persuaid_get_pipeline_status`)**:
-   Call **`persuaid_get_pipeline_status`** using the returned `job_id` (or `brand`):
+2. **Retrieve Completed Metrics (`persuaid_get_pipeline_status`)**:
+   Immediately call **`persuaid_get_pipeline_status`** with the returned `job_id`:
    ```json
    {
      "job_id": "<job_id>"
    }
    ```
-   - If `status: "running"`, wait ~15-20 seconds and call `persuaid_get_pipeline_status` again.
-   - When `status: "completed"`, it returns the full analytical dataset:
-     - **Share of Voice (SoV) %** & **#1 Recommendation Win Rate %**
-     - **5-Stage Funnel Visibility** (Discovery, Interest, Consideration, Purchase, After-Purchase)
-     - **Competitor Presence Rates** & **Citation Domain Breakdown**
-     - Inline CSV prompt taxonomy contents (`csv_itemized_content` & `csv_matrix_content`)
+   *(The server automatically waits on the background job for ~15–20s and returns the completed data directly in this tool call. You do NOT need to sleep, loop, or schedule wakeups).*
+
+   The completed response returns:
+   - **Share of Voice (SoV) %** & **#1 Recommendation Win Rate %**
+   - **5-Stage Funnel Visibility Breakdown** (Discovery, Interest, Consideration, Purchase, After-Purchase)
+   - **Competitor Presence Rates** & **Citation Domain Authority Breakdown**
+   - Inline CSV prompt taxonomy contents (`csv_itemized_content` & `csv_matrix_content`)
 
 3. **Fallback (Pure Chat Environments Only)**:
    If no MCP tools are connected to your session, formulate an authentic 5-stage search journey taxonomy and model realistic GEO benchmarks based on category market dynamics.

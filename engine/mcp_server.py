@@ -524,6 +524,7 @@ def handle_persuaid_start_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
 
     # 3. Create fresh background job
     job_id = f"job_{uuid.uuid4().hex[:10]}"
+    job_event = threading.Event()
     job_record = {
         "job_id": job_id,
         "cache_key": canonical_key,
@@ -532,6 +533,7 @@ def handle_persuaid_start_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
         "status": "running",
         "progress": "Auditing ChatGPT and Google Gemini in parallel via Apify Cloud...",
         "start_time": time.time(),
+        "event": job_event,
         "result": None,
         "error": None,
     }
@@ -551,6 +553,8 @@ def handle_persuaid_start_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
                 job_record["status"] = "error"
                 job_record["error"] = str(ex)
                 job_record["progress"] = f"Failed: {ex}"
+        finally:
+            job_event.set()
 
     threading.Thread(target=async_runner, daemon=True).start()
 
@@ -559,14 +563,15 @@ def handle_persuaid_start_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
         "job_id": job_id,
         "brand": brand,
         "ready": False,
-        "message": f"GEO audit pipeline successfully launched in the background for {brand}. Please poll persuaid_get_pipeline_status with job_id '{job_id}' (e.g. after ~20 seconds).",
+        "message": f"GEO audit pipeline launched in background. Call persuaid_get_pipeline_status(job_id='{job_id}') immediately (it will automatically wait until complete).",
     }
 
 
 def handle_persuaid_get_pipeline_status(args: Dict[str, Any]) -> Dict[str, Any]:
-    """Polls the status of a background GEO audit job."""
+    """Polls the status of a background GEO audit job with automatic server-side wait."""
     job_id = args.get("job_id", "").strip()
     brand = args.get("brand", "").strip().lower()
+    wait_seconds = float(args.get("wait_seconds", 30.0))
 
     with _JOBS_LOCK:
         job = _PIPELINE_JOBS.get(job_id)
@@ -584,42 +589,51 @@ def handle_persuaid_get_pipeline_status(args: Dict[str, Any]) -> Dict[str, Any]:
             }
 
         status = job.get("status")
-        elapsed = round(time.time() - job["start_time"], 1)
+        job_event = job.get("event")
 
-        if status == "running":
-            return {
-                "status": "running",
-                "job_id": job["job_id"],
-                "brand": job["brand"],
-                "ready": False,
-                "elapsed_seconds": elapsed,
-                "progress": job.get("progress", "Auditing search engines in parallel..."),
-                "message": f"Audit is actively running ({elapsed}s elapsed). Please wait ~15-20 seconds and check again.",
-            }
+    # Long-polling: If still running, wait on the event for up to 35 seconds
+    if status == "running" and job_event and wait_seconds > 0:
+        logger.info(f"⏳ Server-side wait on job {job_id} for up to {wait_seconds}s...")
+        job_event.wait(timeout=min(wait_seconds, 35.0))
+        with _JOBS_LOCK:
+            status = job.get("status")
 
-        elif status == "completed":
-            res = job.get("result", {})
-            return {
-                "status": "completed",
-                "job_id": job["job_id"],
-                "brand": job["brand"],
-                "ready": True,
-                "duration_seconds": job.get("duration_seconds", elapsed),
-                "metrics": res.get("metrics"),
-                "csv_itemized_content": res.get("csv_itemized_content", ""),
-                "csv_matrix_content": res.get("csv_matrix_content", ""),
-                "itemized_csv_filename": res.get("itemized_csv_filename", ""),
-                "matrix_csv_filename": res.get("matrix_csv_filename", ""),
-                "total_queries_audited": res.get("total_queries_audited", 0),
-            }
+    elapsed = round(time.time() - job["start_time"], 1)
 
-        else:
-            return {
-                "status": "error",
-                "job_id": job["job_id"],
-                "ready": True,
-                "error": job.get("error") or "Pipeline execution encountered an error.",
-            }
+    if status == "completed":
+        res = job.get("result", {})
+        return {
+            "status": "completed",
+            "job_id": job["job_id"],
+            "brand": job["brand"],
+            "ready": True,
+            "duration_seconds": job.get("duration_seconds", elapsed),
+            "metrics": res.get("metrics"),
+            "csv_itemized_content": res.get("csv_itemized_content", ""),
+            "csv_matrix_content": res.get("csv_matrix_content", ""),
+            "itemized_csv_filename": res.get("itemized_csv_filename", ""),
+            "matrix_csv_filename": res.get("matrix_csv_filename", ""),
+            "total_queries_audited": res.get("total_queries_audited", 0),
+        }
+
+    elif status == "running":
+        return {
+            "status": "running",
+            "job_id": job["job_id"],
+            "brand": job["brand"],
+            "ready": False,
+            "elapsed_seconds": elapsed,
+            "progress": job.get("progress", "Auditing search engines in parallel..."),
+            "message": f"Audit is actively running ({elapsed}s elapsed).",
+        }
+
+    else:
+        return {
+            "status": "error",
+            "job_id": job["job_id"],
+            "ready": True,
+            "error": job.get("error") or "Pipeline execution encountered an error.",
+        }
 
 
 def handle_persuaid_format_queries(args: Dict[str, Any]) -> Dict[str, Any]:
