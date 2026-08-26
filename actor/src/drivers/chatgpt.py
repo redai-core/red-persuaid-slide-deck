@@ -267,7 +267,7 @@ class ChatGPTDriver(BaseDriver):
             pass
 
         # Extract main assistant response text cleanly
-        raw_text = page.evaluate("""() => {
+        raw_text = page.evaluate(r"""() => {
             const assistantTurns = document.querySelectorAll('[data-message-author-role="assistant"]');
             for (let i = assistantTurns.length - 1; i >= 0; i--) {
                 const md = assistantTurns[i].querySelector('.markdown, .prose, [class*="markdown"]') || assistantTurns[i];
