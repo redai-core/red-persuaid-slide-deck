@@ -6,12 +6,16 @@ and secure credentials manager as standardized MCP tools over stdio.
 
 Runs with pure Python standard library (zero external pip dependencies).
 Compatible with all MCP clients: ZCode, Claude Desktop, Cursor, Zed, Goose, Roo Code.
+Includes in-flight request deduplication and result caching to prevent double actor charges on client retries.
 """
 
 import sys
 import os
 import json
 import logging
+import hashlib
+import time
+import threading
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
@@ -86,50 +90,45 @@ TOOLS = [
     },
     {
         "name": "persuaid_run_pipeline",
-        "description": "Runs the complete Step 1.5 GEO audit pipeline in one command: generates 5-stage search journey query taxonomy, exports CSV matrix, audits ChatGPT and Gemini via cloud Apify actors (with local Camoufox fallback), and calculates comprehensive metrics.json.",
+        "description": "Runs the complete Step 1.5 GEO audit pipeline in one command: generates 5-stage search journey query taxonomy, exports CSV matrix, audits ChatGPT and Gemini via cloud Apify actors, and calculates comprehensive metrics and CSV content inline.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "brand": {
                     "type": "string",
-                    "description": "The client brand name (e.g. 'Electrum').",
+                    "description": "The client brand name (e.g. 'Electrum', 'Siloam International Hospital').",
                 },
                 "category": {
                     "type": "string",
-                    "description": "Product or service category (e.g. 'motor listrik').",
+                    "description": "Product or service category (e.g. 'motor listrik', 'healthcare network').",
                 },
                 "competitors": {
                     "type": "string",
-                    "description": "Comma-separated list of competitors (e.g. 'Alva,Gesits,Polytron').",
+                    "description": "Comma-separated list of top competitors to benchmark against.",
                 },
                 "geo": {
                     "type": "string",
                     "default": "Indonesia",
-                    "description": "Geographic target market.",
+                    "description": "Geographic market (e.g. 'Indonesia', 'Global').",
                 },
                 "domain": {
                     "type": "string",
-                    "description": "Brand website domain (e.g. 'electrum.id').",
+                    "description": "Official brand website domain (e.g. 'electrum.id', 'siloamhospitals.com').",
                 },
                 "platform": {
                     "type": "string",
                     "default": "chatgpt,gemini",
-                    "description": "Platforms to audit ('chatgpt', 'gemini', or 'chatgpt,gemini').",
-                },
-                "out_dir": {
-                    "type": "string",
-                    "default": ".",
-                    "description": "Directory to save generated CSV matrix and metrics.json.",
+                    "description": "Target AI platforms ('chatgpt', 'gemini', or 'chatgpt,gemini').",
                 },
                 "samples_per_stage": {
                     "type": "integer",
-                    "default": 2,
-                    "description": "Number of sample queries to audit per journey stage.",
+                    "default": 1,
+                    "description": "Number of sample queries to audit per stage (default: 1 for fast 30s response).",
                 },
                 "reverse_prompt": {
                     "type": "boolean",
                     "default": True,
-                    "description": "Whether to use LLM reverse-prompting to discover organic user search queries.",
+                    "description": "Whether to reverse-prompt authentic queries or use template taxonomy.",
                 },
             },
             "required": ["brand", "category", "competitors"],
@@ -137,30 +136,30 @@ TOOLS = [
     },
     {
         "name": "persuaid_format_queries",
-        "description": "Generates a structured 5-stage AI Search Journey query taxonomy (Discovery, Interest, Consideration, Purchase, After-Purchase) tailored for ChatGPT and Gemini.",
+        "description": "Generates a structured 5-stage AI Search Journey query taxonomy (Discovery, Interest, Consideration, Purchase, After-Purchase) across ChatGPT and Gemini.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "brand": {
                     "type": "string",
-                    "description": "Brand name.",
+                    "description": "The client brand name.",
                 },
                 "category": {
                     "type": "string",
-                    "description": "Category or industry domain.",
+                    "description": "Product or service category.",
                 },
                 "competitors": {
                     "type": "string",
-                    "description": "Comma-separated competitor names.",
+                    "description": "Comma-separated list of competitors.",
                 },
                 "geo": {
                     "type": "string",
                     "default": "Indonesia",
-                    "description": "Target geographic region.",
+                    "description": "Geographic scope.",
                 },
                 "out": {
                     "type": "string",
-                    "description": "Optional file path to export queries JSON.",
+                    "description": "Optional output filepath to save queries JSON.",
                 },
             },
             "required": ["brand", "category", "competitors"],
@@ -168,25 +167,25 @@ TOOLS = [
     },
     {
         "name": "persuaid_aggregate_metrics",
-        "description": "Computes analytical GEO benchmarks (Share of Voice %, #1 recommendation win rate, funnel visibility by stage, citation domain breakdown, and slide archetype data) from an audit results file.",
+        "description": "Computes analytical GEO benchmarks (Share of Voice %, #1 recommendation Win Rate %, 5-stage funnel visibility, citation domains) from audit results.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "results_file": {
                     "type": "string",
-                    "description": "Path to results.json or results_chatgpt.json.",
+                    "description": "Path to results.json or raw list of audit items.",
                 },
                 "brand": {
                     "type": "string",
-                    "description": "Client brand name.",
+                    "description": "Target brand name.",
                 },
                 "brand_domain": {
                     "type": "string",
-                    "description": "Client domain.",
+                    "description": "Optional official website domain.",
                 },
                 "out": {
                     "type": "string",
-                    "description": "Optional path to write computed metrics.json.",
+                    "description": "Optional output filepath to save metrics.json.",
                 },
             },
             "required": ["results_file", "brand"],
@@ -200,17 +199,34 @@ TOOLS = [
             "properties": {
                 "apify_token": {
                     "type": "string",
-                    "description": "Apify API token (starts with 'apify_api_') to store securely with 0600 file permissions.",
+                    "description": "Apify API token (starts with apify_api_...). If omitted, checks existing credentials.",
                 },
                 "test_connection": {
                     "type": "boolean",
                     "default": True,
-                    "description": "Whether to test token validity against Apify's live API.",
+                    "description": "Whether to test the token validity against Apify API.",
                 },
             },
         },
     },
 ]
+
+
+# ==============================================================================
+# Idempotency & In-Flight Request Deduplication Layer
+# Prevents duplicate Apify Actor runs and double charges when MCP clients retry
+# ==============================================================================
+
+_RESULT_CACHE: Dict[str, tuple] = {}
+_IN_FLIGHT: Dict[str, tuple] = {}
+_IDEMPOTENCY_LOCK = threading.Lock()
+CACHE_TTL_SECONDS = 7200  # Cache valid for 2 hours
+
+
+def _get_cache_key(prefix: str, data: dict) -> str:
+    canonical = json.dumps(data, sort_keys=True)
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+    return f"{prefix}:{digest}"
 
 
 def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -220,45 +236,90 @@ def handle_persuaid_audit_query(args: Dict[str, Any]) -> Dict[str, Any]:
     brand_domain = args.get("brand_domain", "")
     competitors = args.get("competitors", [])
 
-    token = resolve_apify_token()
-    if not token:
-        return {
-            "error": "Apify token not found. Please run persuaid_configure_credentials to set your Apify API token."
+    cache_key = _get_cache_key("audit", {
+        "query": query.strip().lower(),
+        "platform": platform,
+        "brand_name": brand_name.strip().lower(),
+        "brand_domain": brand_domain.strip().lower(),
+    })
+
+    now = time.time()
+
+    # 1. Check completed cache
+    with _IDEMPOTENCY_LOCK:
+        if cache_key in _RESULT_CACHE:
+            ts, cached_res = _RESULT_CACHE[cache_key]
+            if now - ts < CACHE_TTL_SECONDS:
+                logger.info(f"⚡ [IDEMPOTENT] Returning cached audit result for key: {cache_key}")
+                return cached_res
+
+        # 2. Check in-flight run
+        if cache_key in _IN_FLIGHT:
+            event, container = _IN_FLIGHT[cache_key]
+            is_worker = False
+        else:
+            event = threading.Event()
+            container = {}
+            _IN_FLIGHT[cache_key] = (event, container)
+            is_worker = True
+
+    # If already running elsewhere, wait for completion
+    if not is_worker:
+        logger.info(f"⏳ [IN-FLIGHT DEDUP] Waiting for existing audit run: {cache_key}")
+        event.wait(timeout=180)
+        return container.get("result", {"status": "error", "error": "In-flight audit timed out."})
+
+    # Main worker execution
+    try:
+        token = resolve_apify_token()
+        if not token:
+            res_val = {"error": "Apify token not found. Please run persuaid_configure_credentials to set your Apify API token."}
+            container["result"] = res_val
+            return res_val
+
+        client = ApifyClient(token=token)
+        platforms_to_audit = ["chatgpt", "gemini"] if platform == "all" else [platform]
+
+        results_data = []
+        for plat in platforms_to_audit:
+            try:
+                if plat == "gemini":
+                    res = client.audit_gemini_overviews(queries=[query], brand_name=brand_name)
+                else:
+                    res = client.audit_chatgpt(queries=[query], brand_name=brand_name)
+
+                for r in res:
+                    if hasattr(r, "to_dict"):
+                        results_data.append(r.to_dict())
+                    elif hasattr(r, "model_dump"):
+                        results_data.append(r.model_dump(mode="json"))
+                    elif isinstance(r, dict):
+                        results_data.append(r)
+                    else:
+                        results_data.append(vars(r))
+            except Exception as e:
+                logger.error(f"Error auditing {plat} query: {e}")
+                results_data.append({
+                    "platform": plat,
+                    "query": query,
+                    "error": str(e),
+                })
+
+        final_res = {
+            "status": "success",
+            "query": query,
+            "results": results_data,
         }
 
-    client = ApifyClient(token=token)
-    platforms_to_audit = ["chatgpt", "gemini"] if platform == "all" else [platform]
+        container["result"] = final_res
+        with _IDEMPOTENCY_LOCK:
+            _RESULT_CACHE[cache_key] = (time.time(), final_res)
+        return final_res
 
-    results_data = []
-    for plat in platforms_to_audit:
-        try:
-            if plat == "gemini":
-                res = client.audit_gemini_overviews(queries=[query], brand_name=brand_name)
-            else:
-                res = client.audit_chatgpt(queries=[query], brand_name=brand_name)
-
-            for r in res:
-                if hasattr(r, "to_dict"):
-                    results_data.append(r.to_dict())
-                elif hasattr(r, "model_dump"):
-                    results_data.append(r.model_dump(mode="json"))
-                elif isinstance(r, dict):
-                    results_data.append(r)
-                else:
-                    results_data.append(vars(r))
-        except Exception as e:
-            logger.error(f"Error auditing {plat} query: {e}")
-            results_data.append({
-                "platform": plat,
-                "query": query,
-                "error": str(e),
-            })
-
-    return {
-        "status": "success",
-        "query": query,
-        "results": results_data,
-    }
+    finally:
+        with _IDEMPOTENCY_LOCK:
+            event.set()
+            _IN_FLIGHT.pop(cache_key, None)
 
 
 def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -273,6 +334,43 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
     reverse_prompt = args.get("reverse_prompt", True)
     brand_slug = brand.strip().replace(" ", "_")
 
+    cache_key = _get_cache_key("pipeline", {
+        "brand": brand.strip().lower(),
+        "domain": (domain or "").strip().lower(),
+        "category": category.strip().lower(),
+        "competitors": sorted([c.strip().lower() for c in competitors.split(",") if c.strip()]),
+        "geo": geo.strip().lower(),
+        "platform": platform.strip().lower(),
+        "samples_per_stage": samples_per_stage,
+    })
+
+    now = time.time()
+
+    # 1. Check completed cache
+    with _IDEMPOTENCY_LOCK:
+        if cache_key in _RESULT_CACHE:
+            ts, cached_res = _RESULT_CACHE[cache_key]
+            if now - ts < CACHE_TTL_SECONDS:
+                logger.info(f"⚡ [IDEMPOTENT] Returning cached pipeline result for: {brand} ({cache_key})")
+                return cached_res
+
+        # 2. Check in-flight run
+        if cache_key in _IN_FLIGHT:
+            event, container = _IN_FLIGHT[cache_key]
+            is_worker = False
+        else:
+            event = threading.Event()
+            container = {}
+            _IN_FLIGHT[cache_key] = (event, container)
+            is_worker = True
+
+    # If already running elsewhere (e.g. client timeout retry), wait for the active run
+    if not is_worker:
+        logger.info(f"⏳ [IN-FLIGHT DEDUP] Client retry detected for pipeline '{brand}'. Waiting on active cloud run ({cache_key})...")
+        event.wait(timeout=180)
+        return container.get("result", {"status": "error", "error": "In-flight pipeline run timed out."})
+
+    # Main worker execution
     try:
         pipeline_output = run_pipeline(
             brand=brand,
@@ -291,7 +389,7 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
         csv_itemized = pipeline_output.get("csv_itemized_content", "") if isinstance(pipeline_output, dict) else ""
         csv_matrix = pipeline_output.get("csv_matrix_content", "") if isinstance(pipeline_output, dict) else ""
 
-        return {
+        final_res = {
             "status": "success",
             "message": f"GEO audit pipeline completed successfully for {brand}.",
             "brand": brand,
@@ -304,12 +402,25 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
             "matrix_csv_filename": f"{brand_slug}_AI_Search_Journey_Matrix.csv",
             "total_queries_audited": len(pipeline_output.get("results", [])) if isinstance(pipeline_output, dict) else 0,
         }
+
+        container["result"] = final_res
+        with _IDEMPOTENCY_LOCK:
+            _RESULT_CACHE[cache_key] = (time.time(), final_res)
+        return final_res
+
     except Exception as e:
         logger.error(f"Pipeline execution error: {e}", exc_info=True)
-        return {
+        err_res = {
             "status": "error",
             "error": str(e),
         }
+        container["result"] = err_res
+        return err_res
+
+    finally:
+        with _IDEMPOTENCY_LOCK:
+            event.set()
+            _IN_FLIGHT.pop(cache_key, None)
 
 
 def handle_persuaid_format_queries(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -321,12 +432,11 @@ def handle_persuaid_format_queries(args: Dict[str, Any]) -> Dict[str, Any]:
 
     comp_list = [c.strip() for c in competitors.split(",") if c.strip()] if isinstance(competitors, str) else competitors
     
-    # Try reverse-prompting first if token available, fallback to template generation
     token = resolve_apify_token()
     queries = None
     if token:
         try:
-            queries = reverse_prompt_queries(brand, category, comp_list, geo, token=token)
+            queries = reverse_prompt_queries(brand, category, comp_list, geo)
         except Exception as e:
             logger.warning(f"Reverse prompting failed, generating standard journey taxonomy: {e}")
 
@@ -500,11 +610,11 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
                             "text": json.dumps(result_data, indent=2, ensure_ascii=False),
                         }
                     ],
-                    "isError": False if result_data.get("status") != "error" else True,
+                    "isError": result_data.get("status") == "error" or "error" in result_data,
                 },
             }
         except Exception as e:
-            logger.error(f"Error executing tool {tool_name}: {e}", exc_info=True)
+            logger.error(f"Error executing tool '{tool_name}': {e}", exc_info=True)
             return {
                 "jsonrpc": "2.0",
                 "id": req_id,
@@ -550,12 +660,14 @@ def run_stdio_server():
 
             try:
                 request = json.loads(line_str)
-            except json.JSONDecodeError as err:
-                logger.error(f"Malformed JSON: {err}")
+            except json.JSONDecodeError as e:
                 err_resp = {
                     "jsonrpc": "2.0",
                     "id": None,
-                    "error": {"code": -32700, "message": f"Parse error: {err}"},
+                    "error": {
+                        "code": -32700,
+                        "message": f"Parse error: {e}",
+                    },
                 }
                 sys.stdout.write(json.dumps(err_resp) + "\n")
                 sys.stdout.flush()
@@ -563,15 +675,26 @@ def run_stdio_server():
 
             response = process_json_rpc(request)
             if response is not None:
-                sys.stdout.write(json.dumps(response) + "\n")
+                sys.stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
                 sys.stdout.flush()
 
-        except (KeyboardInterrupt, SystemExit):
-            logger.info("Shutting down MCP server.")
-            break
         except Exception as e:
-            logger.error(f"Unexpected server exception: {e}", exc_info=True)
+            logger.error(f"Stdio server loop error: {e}", exc_info=True)
+            err_resp = {
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {
+                    "code": -32603,
+                    "message": f"Internal JSON-RPC error: {e}",
+                },
+            }
+            sys.stdout.write(json.dumps(err_resp) + "\n")
+            sys.stdout.flush()
+
+
+def main():
+    run_stdio_server()
 
 
 if __name__ == "__main__":
-    run_stdio_server()
+    main()
