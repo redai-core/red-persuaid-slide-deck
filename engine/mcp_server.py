@@ -269,7 +269,7 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
     domain = args.get("domain")
     platform = args.get("platform", "chatgpt,gemini")
     out_dir = args.get("out_dir", ".")
-    samples_per_stage = args.get("samples_per_stage", 2)
+    samples_per_stage = args.get("samples_per_stage", 1)
     reverse_prompt = args.get("reverse_prompt", True)
 
     try:

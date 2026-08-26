@@ -138,12 +138,13 @@ def run_pipeline(
     print(f"   ✓ Prepared {len(sampled_batch)} sampled batch audit queries -> {queries_json}\n")
 
     # -------------------------------------------------------------
-    # Step 2: Execute Live Headless Batch Audit Sweep
+    # Step 2: Execute Live Multi-Platform Batch Audit (Concurrent)
     # -------------------------------------------------------------
+    import concurrent.futures
     all_results = []
     has_apify = provider in ["auto", "apify"]
 
-    for plat in platforms_list:
+    def audit_single_platform(plat: str) -> List[dict]:
         plat_items = [item for item in sampled_batch if item.get("platform", "").lower() == plat.lower()]
         if not plat_items:
             plat_items = sampled_batch
@@ -167,13 +168,12 @@ def run_pipeline(
                         res_dict["stage"] = plat_items[idx].get("stage")
                         res_dict["intent"] = plat_items[idx].get("intent")
                     plat_results.append(res_dict)
-                    all_results.append(res_dict)
                     status = "✓ CITED" if res.brand_cited else "✗ NOT CITED"
-                    print(f"        [{idx+1}/{len(audit_objs)}] {status} | {len(res.citations)} citations | {res.duration_seconds:.1f}s")
+                    print(f"        [{plat.upper()} {idx+1}/{len(audit_objs)}] {status} | {len(res.citations)} citations | {res.duration_seconds:.1f}s")
 
                 plat_results_file.write_text(json.dumps(plat_results, indent=2, ensure_ascii=False))
                 print(f"   ✓ Saved {plat.upper()} audit results -> {plat_results_file}\n")
-                continue
+                return plat_results
             except Exception as e:
                 print(f"   ⚠️ Apify batch audit on {plat.upper()} failed: {e}. Falling back to local Camoufox.")
 
@@ -198,7 +198,6 @@ def run_pipeline(
                     res_dict["stage"] = item.get("stage")
                     res_dict["intent"] = item.get("intent")
                     plat_results.append(res_dict)
-                    all_results.append(res_dict)
                     status = "✓ CITED" if res.brand_cited else "✗ NOT CITED"
                     print(f"        └─ {status} | {len(res.citations)} citations | {res.duration_seconds:.1f}s")
                 except Exception as q_err:
@@ -206,14 +205,22 @@ def run_pipeline(
 
             plat_results_file.write_text(json.dumps(plat_results, indent=2, ensure_ascii=False))
             print(f"   ✓ Saved {plat.upper()} audit results -> {plat_results_file}\n")
+            return plat_results
         except Exception as e:
             print(f"   ⚠️ Batch audit on {plat.upper()} encountered an error: {e}")
             if plat_results_file.exists():
                 try:
-                    cached = json.loads(plat_results_file.read_text())
-                    all_results.extend(cached)
+                    return json.loads(plat_results_file.read_text())
                 except Exception:
                     pass
+            return []
+
+    # Run platforms in parallel to fit within MCP client tool timeout
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(platforms_list))) as executor:
+        future_to_plat = {executor.submit(audit_single_platform, p): p for p in platforms_list}
+        for future in concurrent.futures.as_completed(future_to_plat):
+            p_res = future.result()
+            all_results.extend(p_res)
 
     if not all_results:
         print(f"❌ No audit results collected across target platforms", file=sys.stderr)
