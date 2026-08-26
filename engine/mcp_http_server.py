@@ -67,7 +67,6 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def log_message(self, format, *args):
-        # Override to use standard logging
         logger.info(f"{self.client_address[0]} - {format % args}")
 
     def _send_cors_headers(self):
@@ -189,7 +188,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             return
 
         if path in ["/mcp", "/jsonrpc"]:
-            # Direct HTTP JSON-RPC endpoint
+            # Direct HTTP JSON-RPC endpoint (synchronous)
             response = handle_jsonrpc_request(payload)
             if response is None:
                 self.send_response(204)
@@ -216,13 +215,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": f"Session '{session_id}' not found or closed."}).encode("utf-8"))
                 return
 
-            # Process in thread and push to SSE queue
-            response = handle_jsonrpc_request(payload)
-            if response is not None:
-                q = active_sse_queues.get(session_id)
-                if q:
-                    q.put(response)
-
+            # Respond immediately with 202 Accepted
             self.send_response(202)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -230,6 +223,19 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(resp_bytes)))
             self.end_headers()
             self.wfile.write(resp_bytes)
+
+            # Process asynchronously in worker thread and push result down the SSE connection
+            def async_worker(sess_id: str, rpc_payload: dict):
+                try:
+                    response = handle_jsonrpc_request(rpc_payload)
+                    if response is not None:
+                        q = active_sse_queues.get(sess_id)
+                        if q:
+                            q.put(response)
+                except Exception as ex:
+                    logger.error(f"Error processing async SSE RPC message: {ex}")
+
+            threading.Thread(target=async_worker, args=(session_id, payload), daemon=True).start()
             return
 
         else:
