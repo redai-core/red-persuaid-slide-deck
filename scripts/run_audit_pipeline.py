@@ -264,9 +264,18 @@ def run_pipeline(
             print(f"     • {dom.get('domain'):<20}: {dom.get('citation_count', 0)} citations ({dom.get('share_pct', 0)}%)")
         print(f"========================================================\n")
 
+        return {
+            "metrics": metrics,
+            "queries": sampled_batch,
+            "all_queries": queries,
+            "results": all_results,
+            "csv_itemized_content": csv_itemized.read_text(encoding="utf-8") if csv_itemized.exists() else "",
+            "csv_matrix_content": csv_matrix.read_text(encoding="utf-8") if csv_matrix.exists() else "",
+        }
+
     except Exception as e:
         print(f"❌ Error calculating metrics: {e}", file=sys.stderr)
-        sys.exit(1)
+        raise e
 
 
 def main():

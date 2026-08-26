@@ -268,12 +268,13 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
     geo = args.get("geo", "Indonesia")
     domain = args.get("domain")
     platform = args.get("platform", "chatgpt,gemini")
-    out_dir = args.get("out_dir", ".")
+    out_dir = args.get("out_dir", "/tmp/persuaid_runs")
     samples_per_stage = args.get("samples_per_stage", 1)
     reverse_prompt = args.get("reverse_prompt", True)
+    brand_slug = brand.strip().replace(" ", "_")
 
     try:
-        metrics = run_pipeline(
+        pipeline_output = run_pipeline(
             brand=brand,
             category=category,
             competitors=competitors,
@@ -285,17 +286,23 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
             samples_per_stage=samples_per_stage,
             provider="auto",
         )
+
+        metrics = pipeline_output.get("metrics") if isinstance(pipeline_output, dict) else pipeline_output
+        csv_itemized = pipeline_output.get("csv_itemized_content", "") if isinstance(pipeline_output, dict) else ""
+        csv_matrix = pipeline_output.get("csv_matrix_content", "") if isinstance(pipeline_output, dict) else ""
+
         return {
             "status": "success",
             "message": f"GEO audit pipeline completed successfully for {brand}.",
             "brand": brand,
+            "domain": domain,
+            "category": category,
             "metrics": metrics,
-            "artifacts": {
-                "itemized_prompts_csv": f"{out_dir}/{brand}_AI_Search_Journey_Prompts.csv",
-                "matrix_csv": f"{out_dir}/{brand}_AI_Search_Journey_Matrix.csv",
-                "metrics_json": f"{out_dir}/metrics.json",
-                "results_json": f"{out_dir}/results.json",
-            },
+            "csv_itemized_content": csv_itemized,
+            "csv_matrix_content": csv_matrix,
+            "itemized_csv_filename": f"{brand_slug}_AI_Search_Journey_Prompts.csv",
+            "matrix_csv_filename": f"{brand_slug}_AI_Search_Journey_Matrix.csv",
+            "total_queries_audited": len(pipeline_output.get("results", [])) if isinstance(pipeline_output, dict) else 0,
         }
     except Exception as e:
         logger.error(f"Pipeline execution error: {e}", exc_info=True)
