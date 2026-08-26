@@ -1,0 +1,22 @@
+{
+  "actorSpecification": 1,
+  "name": "ai-search-citation-scraper",
+  "title": "AI Search & Citation Scraper (ChatGPT & Gemini GEO Audit)",
+  "description": "Stealth scraper for Generative Engine Optimization (GEO). Audits citations, Share of Voice (SoV), and brand mentions across ChatGPT and Gemini.",
+  "version": "1.0",
+  "meta": {
+    "templateId": "python-empty"
+  },
+  "dockerfile": "./Dockerfile",
+  "input": "./input_schema.json",
+  "storages": {
+    "dataset": "./output_schema.json"
+  },
+  "minMemoryMbytes": 1024,
+  "maxMemoryMbytes": 4096,
+  "categories": [
+    "AI",
+    "SEO_TOOLS",
+    "MARKETING"
+  ]
+}

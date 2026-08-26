@@ -1,258 +1,317 @@
 # Slide Deck Code & Generation Templates
 
-PersuAId is built around a **zero-friction, zero-install architecture powered by PptxGenJS**. By embedding client-side PowerPoint generation (`pptxgenjs`) and print CSS directly into the single-file HTML deliverable, users can view slides, present in fullscreen, and download native editable `.pptx` or `.pdf` files **with a single click and zero CLI dependencies**.
+PersuAId generates native **16:9 HD widescreen (`13.333" × 7.5"`) PowerPoint presentation decks** directly using `pptxgenjs`.
 
 ---
 
-## 1. Zero-Install Interactive HTML + Instant In-Browser PptxGenJS Exporter (Standard Deliverable)
+## Standard Node.js PptxGenJS Generator (`generate_deck.js`)
 
-This single-file HTML deck contains:
-- **Presentation Mode**: Fullscreen, keyboard shortcuts (`←`, `→`, `Space`, `F`), touch navigation.
-- **1-Click PPTX Export**: In-browser client-side generator via PptxGenJS that converts slides into native `.pptx` on click.
-- **1-Click PDF Export**: Clean `@media print` styling for browser "Print to PDF".
-- **Zero Dependencies**: Requires no Node.js, Python, or terminal commands.
-
-### Complete Standalone Boilerplate
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>[Deck Title] — [Client Name]</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Client-side PPTX Generator via PptxGenJS (Zero install for user) -->
-  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  
-  <style>
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: #07090E;
-      color: #F3F4F6;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-    }
-    .slide-viewport {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .slide-frame {
-      width: 100%;
-      height: 100%;
-      max-width: 1600px;
-      max-height: 900px;
-      aspect-ratio: 16 / 9;
-      background-color: #0B0F17;
-      position: relative;
-      overflow: hidden;
-      display: none;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: 3.5rem 4.5rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-    }
-    .slide-frame.active {
-      display: flex;
-      animation: fadeIn 0.2s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.995); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    .kicker {
-      font-size: 0.75rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: #10B981;
-    }
-    .synthesis-box {
-      background: rgba(255, 255, 255, 0.03);
-      border-left: 3px solid #10B981;
-      border-radius: 0.375rem;
-      padding: 0.85rem 1.25rem;
-    }
-    .metric-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 0.5rem;
-      padding: 1.25rem;
-    }
-
-    /* Print to PDF Styles */
-    @media print {
-      body { overflow: visible; background: transparent; }
-      .slide-viewport { display: block; width: 100%; height: auto; }
-      .slide-frame {
-        display: flex !important;
-        page-break-after: always;
-        break-after: page;
-        width: 100vw;
-        height: 56.25vw;
-        max-width: none;
-        max-height: none;
-        border: none;
-        box-shadow: none;
-      }
-      .no-print { display: none !important; }
-    }
-  </style>
-</head>
-<body class="select-none">
-
-  <div class="slide-viewport">
-    
-    <!-- SLIDE 1: Cover -->
-    <section class="slide-frame active" data-kicker="GEO AUDIT & STRATEGY" data-title="[Brand Name]" data-subtitle="[Core Subtitle]">
-      <div class="flex items-center justify-between">
-        <span class="kicker">GEO STRATEGY REPORT</span>
-        <span class="text-xs text-gray-500 font-medium">Prepared by Captain Words</span>
-      </div>
-      <div class="my-auto py-8 space-y-4">
-        <h1 class="text-5xl lg:text-6xl font-black tracking-tight text-white">[Brand Name]</h1>
-        <p class="text-xl text-gray-300 font-light max-w-3xl">[Core Strategic Subtitle]</p>
-      </div>
-      <div class="flex items-center justify-between border-t border-gray-800/80 pt-4 text-xs text-gray-500">
-        <div>Market: Indonesia</div>
-        <div class="font-mono text-gray-400">1 / 10</div>
-      </div>
-    </section>
-
-    <!-- Additional slides follow the Archetype Catalog -->
-
-  </div>
-
-  <!-- Zero-Friction Controller & PptxGenJS Export Toolbar -->
-  <div class="no-print fixed bottom-4 right-6 flex items-center space-x-3 bg-gray-900/90 border border-gray-800 px-4 py-2 rounded-full text-xs text-gray-400 backdrop-blur shadow-2xl z-50">
-    <button onclick="prevSlide()" class="hover:text-white px-2 py-0.5">← Prev</button>
-    <span id="slide-indicator" class="font-mono text-white text-[11px]">1 / 10</span>
-    <button onclick="nextSlide()" class="hover:text-white px-2 py-0.5">Next →</button>
-    <span class="text-gray-700">|</span>
-    <button onclick="downloadPptx()" class="hover:text-emerald-400 text-emerald-300 font-semibold flex items-center space-x-1">
-      <span>📥 Export .PPTX</span>
-    </button>
-    <span class="text-gray-700">|</span>
-    <button onclick="window.print()" class="hover:text-white">🖨️ PDF</button>
-    <span class="text-gray-700">|</span>
-    <button onclick="toggleFullscreen()" class="hover:text-white">⛶ Fullscreen</button>
-  </div>
-
-  <script>
-    let currentIdx = 0;
-    const slides = document.querySelectorAll('.slide-frame');
-    const indicator = document.getElementById('slide-indicator');
-
-    function showSlide(idx) {
-      slides[currentIdx].classList.remove('active');
-      currentIdx = (idx + slides.length) % slides.length;
-      slides[currentIdx].classList.add('active');
-      if (indicator) indicator.innerText = `${currentIdx + 1} / ${slides.length}`;
-    }
-
-    function nextSlide() { showSlide(currentIdx + 1); }
-    function prevSlide() { showSlide(currentIdx - 1); }
-
-    function toggleFullscreen() {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
-      else if (document.exitFullscreen) document.exitFullscreen();
-    }
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
-      else if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-      else if (e.key === 'Home') showSlide(0);
-      else if (e.key === 'End') showSlide(slides.length - 1);
-    });
-
-    // Zero-Install Client-Side PowerPoint Exporter via PptxGenJS
-    function downloadPptx() {
-      if (typeof PptxGenJS === 'undefined') {
-        alert('PptxGenJS loading, please try again in a second.');
-        return;
-      }
-      let pptx = new PptxGenJS();
-      pptx.layout = 'LAYOUT_16x9';
-
-      slides.forEach((s, idx) => {
-        let slide = pptx.addSlide();
-        slide.background = { color: '0B0F17' };
-
-        let kicker = s.getAttribute('data-kicker') || 'STRATEGY REPORT';
-        let title = s.getAttribute('data-title') || s.querySelector('h1, h2')?.innerText || 'Slide';
-        let subtitle = s.getAttribute('data-subtitle') || '';
-
-        // Add Header
-        slide.addText(kicker.toUpperCase(), { x: 0.8, y: 0.6, fontSize: 11, bold: true, color: '10B981', fontFace: 'Arial' });
-        slide.addText(title, { x: 0.8, y: 0.9, w: 11.7, fontSize: 22, bold: true, color: 'FFFFFF', fontFace: 'Arial' });
-        if (subtitle) {
-          slide.addText(subtitle, { x: 0.8, y: 1.5, w: 11.7, fontSize: 13, color: '9CA3AF', fontFace: 'Arial' });
-        }
-
-        // Add Footer
-        slide.addText(`PersuAId Executive Report · Slide ${idx + 1}`, { x: 0.8, y: 6.8, w: 11.7, fontSize: 9, color: '6B7280', fontFace: 'Arial' });
-      });
-
-      pptx.writeFile({ fileName: 'presentation.pptx' });
-    }
-  </script>
-</body>
-</html>
-```
-
----
-
-## 2. Node.js / TypeScript PptxGenJS Script Template
-
-When generating presentations via a Node script using `pptxgenjs`:
+When generating presentations directly in the workspace, create and run a Node.js script using `pptxgenjs` with the standard 16:9 HD widescreen layout:
 
 ```javascript
 import pptxgen from "pptxgenjs";
 
 const pptx = new pptxgen();
-pptx.layout = "LAYOUT_16x9";
 
-// Slide 1: Cover
+// Define Standard Modern 16:9 Widescreen Layout (13.333" x 7.5" / 1920x1080 equivalent)
+pptx.defineLayout({ name: "LAYOUT_16_9_HD", width: 13.333, height: 7.5 });
+pptx.layout = "LAYOUT_16_9_HD";
+
+pptx.author = "PersuAId Strategy & GEO Intelligence";
+pptx.company = "PersuAId";
+pptx.title = "[Brand] - Generative Engine Optimization (GEO) & AI Category Audit";
+
+// Color Palette Constants (Dark Executive Theme)
+const BG_DARK = "07090E";
+const BG_CARD = "0E131F";
+const BG_CARD_LIGHT = "151C2E";
+const TEXT_WHITE = "FFFFFF";
+const TEXT_MUTED = "94A3B8";
+const TEXT_DIM = "64748B";
+const ACCENT_EMERALD = "10B981";
+const ACCENT_BLUE = "3B82F6";
+const ACCENT_RED = "EF4444";
+const ACCENT_AMBER = "F59E0B";
+
+// Geometry Margins (16:9 HD 13.333" x 7.5")
+const SAFE_X = 0.8;
+const SAFE_W = 11.733;
+
+// Helper: Standard Slide Header
+function addHeader(slide, kicker, title, subtitle = null) {
+  slide.background = { color: BG_DARK };
+
+  slide.addText(kicker.toUpperCase(), {
+    x: SAFE_X,
+    y: 0.45,
+    w: SAFE_W,
+    h: 0.25,
+    fontSize: 9.5,
+    bold: true,
+    color: ACCENT_EMERALD,
+    fontFace: "Arial",
+  });
+
+  slide.addText(title, {
+    x: SAFE_X,
+    y: 0.72,
+    w: SAFE_W,
+    h: 0.65,
+    fontSize: 19,
+    bold: true,
+    color: TEXT_WHITE,
+    fontFace: "Arial",
+  });
+
+  if (subtitle) {
+    slide.addText(subtitle, {
+      x: SAFE_X,
+      y: 1.38,
+      w: SAFE_W,
+      h: 0.35,
+      fontSize: 11,
+      color: TEXT_MUTED,
+      fontFace: "Arial",
+    });
+  }
+
+  // Footer
+  slide.addText("PersuAId Strategy & GEO Intelligence · Confidential", {
+    x: SAFE_X,
+    y: 6.85,
+    w: SAFE_W,
+    h: 0.25,
+    fontSize: 9,
+    color: TEXT_DIM,
+    fontFace: "Arial",
+  });
+}
+
+// Helper: Synthesis / Takeaway Box
+function addSynthesis(slide, text, yPos = 5.75, h = 0.85) {
+  slide.addShape(pptx.shapes.RECTANGLE, {
+    x: SAFE_X,
+    y: yPos,
+    w: SAFE_W,
+    h: h,
+    fill: { color: BG_CARD },
+    line: { color: ACCENT_EMERALD, width: 1.5 },
+  });
+
+  slide.addText("WHAT THIS MEANS:", {
+    x: SAFE_X + 0.2,
+    y: yPos + 0.08,
+    w: SAFE_W - 0.4,
+    h: 0.2,
+    fontSize: 8.5,
+    bold: true,
+    color: ACCENT_EMERALD,
+    fontFace: "Arial",
+  });
+
+  slide.addText(text, {
+    x: SAFE_X + 0.2,
+    y: yPos + 0.28,
+    w: SAFE_W - 0.4,
+    h: h - 0.35,
+    fontSize: 10,
+    color: TEXT_WHITE,
+    fontFace: "Arial",
+  });
+}
+
+// -------------------------------------------------------------
+// SLIDE 1: Cover (ARCH-TITLE)
+// -------------------------------------------------------------
 const slide1 = pptx.addSlide();
-slide1.background = { color: "0B0F17" };
+slide1.background = { color: BG_DARK };
 
-slide1.addText("GEO STRATEGY REPORT", {
-  x: 0.8,
-  y: 0.8,
+slide1.addText("GENERATIVE ENGINE OPTIMIZATION (GEO) AUDIT", {
+  x: SAFE_X,
+  y: 2.2,
+  w: SAFE_W,
   fontSize: 11,
   bold: true,
-  color: "10B981",
-  fontFace: "Arial"
+  color: ACCENT_EMERALD,
+  fontFace: "Arial",
 });
 
-slide1.addText("Jotun Indonesia", {
-  x: 0.8,
-  y: 2.2,
-  w: 11.5,
-  fontSize: 44,
+slide1.addText("[Brand Name]", {
+  x: SAFE_X,
+  y: 2.55,
+  w: SAFE_W,
+  fontSize: 40,
   bold: true,
-  color: "FFFFFF",
-  fontFace: "Arial"
+  color: TEXT_WHITE,
+  fontFace: "Arial",
 });
 
-slide1.addText("How AI Engines Recommend Interior Paint in Indonesia", {
-  x: 0.8,
-  y: 3.2,
-  w: 11.5,
-  fontSize: 18,
-  color: "D1D5DB",
-  fontFace: "Arial"
+slide1.addText("AI Search Visibility, Category Mindshare & Strategic Remediation Blueprint", {
+  x: SAFE_X,
+  y: 3.5,
+  w: SAFE_W,
+  fontSize: 16,
+  color: ACCENT_BLUE,
+  fontFace: "Arial",
 });
 
-pptx.writeFile({ fileName: "output.pptx" });
+// -------------------------------------------------------------
+// SLIDE 3: Search Journey Overview Table (ARCH-JOURNEY-MAP)
+// -------------------------------------------------------------
+const slide3 = pptx.addSlide();
+addHeader(slide3, "SEARCH JOURNEY", "Who we're reaching, and the journey we must own end-to-end");
+
+const journeyTableData = [
+  [
+    { text: "JOURNEY STAGE", options: { bold: true, color: "FFFFFF", fill: { color: "FA541C" }, fontSize: 10 } },
+    { text: "SEARCH INTENT", options: { bold: true, color: "FFFFFF", fill: { color: "FA541C" }, fontSize: 10 } },
+    { text: "REPRESENTATIVE USER QUERIES / TOPICS", options: { bold: true, color: "FFFFFF", fill: { color: "FA541C" }, fontSize: 10 } },
+  ],
+  [
+    { text: "1. Discovery", options: { bold: true, color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9.5 } },
+    { text: "Unbranded category, inspiration, problem-solving", options: { color: "94A3B8", fill: { color: "0E131F" }, fontSize: 9 } },
+    { text: '"Warna cat ruang tamu yang sejuk" · "merk cat tembok interior terbaik 2026" · "inspirasi warna cat kamar sempit"', options: { color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9 } },
+  ],
+  [
+    { text: "2. Interest", options: { bold: true, color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9.5 } },
+    { text: "Brand-specific, product lines, features & colors", options: { color: "94A3B8", fill: { color: "0E131F" }, fontSize: 9 } },
+    { text: '"Jotun Majestic True Beauty" · "katalog warna cat Jotun 2026" · "harga cat Jotun interior 5kg"', options: { color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9 } },
+  ],
+  [
+    { text: "3. Consideration", options: { bold: true, color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9.5 } },
+    { text: "Brand/product comparison & reviews", options: { color: "94A3B8", fill: { color: "0E131F" }, fontSize: 9 } },
+    { text: '"Jotun vs Dulux interior" · "Jotun Majestic vs Essence" · "review Jotun Majestic Sense" · "apakah cat Jotun bagus?"', options: { color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9 } },
+  ],
+  [
+    { text: "4. Purchase", options: { bold: true, color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9.5 } },
+    { text: "Purchase intent, local availability, pricing", options: { color: "94A3B8", fill: { color: "0E131F" }, fontSize: 9 } },
+    { text: '"Toko cat Jotun terdekat" · "harga cat Jotun 25 kg warna putih" · "Jotun official store Tokopedia"', options: { color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9 } },
+  ],
+  [
+    { text: "5. After purchase", options: { bold: true, color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9.5 } },
+    { text: "Application, maintenance, support & advocacy", options: { color: "94A3B8", fill: { color: "0E131F" }, fontSize: 9 } },
+    { text: '"Cara mengaplikasikan Jotun Majestic" · "cara membersihkan noda di dinding Jotun" · "sisa cat Jotun tahan berapa lama"', options: { color: "FFFFFF", fill: { color: "0E131F" }, fontSize: 9 } },
+  ],
+];
+
+slide3.addTable(journeyTableData, {
+  x: SAFE_X,
+  y: 1.6,
+  w: SAFE_W,
+  colW: [2.0, 3.8, 5.933],
+  border: { pt: 0.5, color: "334155" },
+  align: "left",
+  valign: "middle",
+});
+
+// -------------------------------------------------------------
+// SLIDE 4: Complete Prompt Taxonomy Grid (ARCH-JOURNEY-DEEPDIVE)
+// -------------------------------------------------------------
+const slide4 = pptx.addSlide();
+addHeader(slide4, "QUERY TAXONOMY", "Prompt mapped to journey", "Jotun Cat Interior");
+
+// Helper: 5-Stage Container Card (Dark Header Bar + Crisp White Card Body)
+function addJourneyCard(slide, title, bullets, x, y, w, h) {
+  // Dark Header Bar
+  slide.addShape(pptx.shapes.RECTANGLE, {
+    x: x,
+    y: y,
+    w: w,
+    h: 0.35,
+    fill: { color: "111827" },
+    line: { color: "374151", width: 1 },
+  });
+
+  slide.addText(title.toUpperCase(), {
+    x: x + 0.15,
+    y: y + 0.05,
+    w: w - 0.3,
+    h: 0.25,
+    fontSize: 9.5,
+    bold: true,
+    color: "FFFFFF",
+    fontFace: "Arial",
+  });
+
+  // White Card Body
+  slide.addShape(pptx.shapes.RECTANGLE, {
+    x: x,
+    y: y + 0.35,
+    w: w,
+    h: h - 0.35,
+    fill: { color: "FFFFFF" },
+    line: { color: "E5E7EB", width: 1 },
+  });
+
+  const bulletText = bullets.map(b => `• ${b}`).join("\n");
+  slide.addText(bulletText, {
+    x: x + 0.15,
+    y: y + 0.45,
+    w: w - 0.3,
+    h: h - 0.55,
+    fontSize: 8.2,
+    color: "111827",
+    fontFace: "Arial",
+    lineSpacing: 12,
+  });
+}
+
+// Row 1 (Top - 3 Cards)
+addJourneyCard(slide4, "1 · DISCOVERY", [
+  "cat interior terbaik",
+  "warna cat ruang tamu 2026",
+  "warna kamar agar terlihat luas",
+  "cat tembok anti lembab",
+  "cat interior low odor",
+  "cat tembok interior anti jamur",
+  "inspirasi warna kamar sempit",
+  "warna cat rumah minimalis"
+], 0.8, 1.65, 3.75, 2.35);
+
+addJourneyCard(slide4, "2 · INTEREST", [
+  "Jotun cat interior",
+  "warna cat interior Jotun",
+  "katalog warna cat Jotun 2026",
+  "Jotun Majestic Wall",
+  "Jotun Majestic True Beauty",
+  "Jotun untuk kamar tidur",
+  "cat low odour kamar anak",
+  "rekomendasi Jotun ruang keluarga"
+], 4.79, 1.65, 3.75, 2.35);
+
+addJourneyCard(slide4, "3 · CONSIDERATION", [
+  "Jotun vs Dulux interior",
+  "Jotun Majestic Sense vs True Beauty",
+  "Jotun Majestic vs Essence",
+  "review Jotun Majestic Sense",
+  "apakah cat Jotun bagus?",
+  "cat matt vs sheen",
+  "cat Jotun terbaik kamar anak",
+  "Jotun vs Nippon Paint interior"
+], 8.78, 1.65, 3.75, 2.35);
+
+// Row 2 (Bottom - 2 Cards)
+addJourneyCard(slide4, "4 · PURCHASE", [
+  "harga cat Jotun interior",
+  "toko cat Jotun terdekat",
+  "Jotun official store",
+  "Jotun official store Tokopedia",
+  "promo cat Jotun terbaru",
+  "beli sampel warna Jotun",
+  "kalkulator kebutuhan cat Jotun",
+  "agen resmi Jotun Jakarta"
+], 0.8, 4.25, 5.74, 2.35);
+
+addJourneyCard(slide4, "5 · AFTER PURCHASE", [
+  "cara menggunakan cat Jotun",
+  "cara mengaplikasikan Jotun Majestic",
+  "apakah perlu primer sebelum mengecat?",
+  "berapa lapis cat Jotun?",
+  "berapa lama cat interior kering?",
+  "cara membersihkan noda di dinding",
+  "hasil warna Jotun setelah kering",
+  "review setelah pakai Jotun Majestic"
+], 6.79, 4.25, 5.74, 2.35);
+
+pptx.writeFile({ fileName: "[Brand]_GEO_Audit_2026.pptx" });
 ```

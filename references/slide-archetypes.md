@@ -31,30 +31,38 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 ---
 
 ## 3. 5-Stage AI Search Journey Overview (`ARCH-JOURNEY-MAP`)
-- **Visual Structure**: 5 horizontal sequential chevron cards across the funnel.
+- **Visual Structure**: Full-width high-contrast structured table with an orange/coral header (`#FA541C` / `#FF5500`) and 5 clean stage row containers on a dark background.
 - **Components**:
-  - **Kicker**: `SEARCH JOURNEY MAP` or `CONSUMER AI BEHAVIOR`
-  - **Action Title**: Journey verdict (e.g., *"Buyers query AI across 5 distinct phases — Brand drops off after Discovery"*)
-  - **5 Stage Cards**:
-    1. `1. Discovery`: Broad category inspiration & problem queries (e.g., *"Best interior paint for humid walls"*).
-    2. `2. Interest`: Brand catalogs, variants, and specs (e.g., *"Brand catalog 2026", "anti-bacterial paint"*).
-    3. `3. Consideration`: Direct comparisons & reviews (e.g., *"Brand X vs Competitor Y", "review premium line"*).
-    4. `4. Purchase`: Store locators, pricing, calculators (e.g., *"Official store near me", "paint room calculator"*).
-    5. `5. After-Purchase`: Guides, troubleshooting, maintenance (e.g., *"How to clean stains", "drying time"*).
+  - **Kicker**: `SEARCH JOURNEY` or `AUDIENCE DISCOVERY`
+  - **Action Title**: Narrative takeaway on the journey (e.g., *"Who we're reaching, and the journey we must own end-to-end"*)
+  - **3-Column High-Contrast Table**:
+    - **Column 1: `JOURNEY STAGE`** (Width: 20%): `1. Discovery`, `2. Interest`, `3. Consideration`, `4. Purchase`, `5. After purchase`.
+    - **Column 2: `SEARCH INTENT`** (Width: 35%):
+      - `1. Discovery`: *"Unbranded category, inspiration, problem-solving"*
+      - `2. Interest`: *"Brand-specific, product lines, features & colors"*
+      - `3. Consideration`: *"Brand/product comparison & reviews"*
+      - `4. Purchase`: *"Purchase intent, local availability, pricing"*
+      - `5. After purchase`: *"Application, maintenance, support & advocacy"*
+    - **Column 3: `REPRESENTATIVE USER QUERIES / TOPICS`** (Width: 45%): 4-5 bulleted/quoted representative search queries per stage separated by middle dots (`·`) or line breaks.
   - **"What this means" Callout**: Pinpointing the exact journey stage where AI citations break down.
 
 ---
 
-## 4. Journey Query Breakdown Deep-Dive (`ARCH-JOURNEY-DEEPDIVE`)
-- **Visual Structure**: Multi-row, multi-column matrix mapping real-world user queries across engines (ChatGPT, Google AI Overviews, Perplexity, Copilot) across the 5 journey stages.
+## 4. Complete Prompt Taxonomy Grid (`ARCH-JOURNEY-DEEPDIVE`)
+- **Visual Structure**: 5-Card Container Grid arranged in 2 rows (3 cards in Top Row, 2 cards in Bottom Row) with dark stage header bars and clean white card bodies.
 - **Components**:
   - **Kicker**: `QUERY TAXONOMY` or `PROMPT ECOSYSTEM`
-  - **Action Title**: Specific prompt coverage (e.g., *"AI engine queries span high-intent comparison to post-purchase care"*)
-  - **Engine x Stage Grid**:
-    - Rows: `Google AI Overviews`, `ChatGPT`, `Perplexity`, `Microsoft Copilot`
-    - Columns: `Discovery` | `Interest` | `Consideration` | `Purchase` | `After-Purchase`
-    - Content: 2-3 bulleted prompt examples per cell showing real consumer search language.
-  - **"What this means" Callout**: Highlighting how answering specific query clusters unlocks high-intent conversions.
+  - **Action Title**: *"Prompt mapped to journey"*
+  - **Subtitle**: `[Brand] [Category]` (e.g. *"Jotun Cat Interior"*, *"Electrum Motor Listrik"*)
+  - **5-Card Container Grid**:
+    - **Top Row (3 Cards)**:
+      - **Card 1: `1 · DISCOVERY`**: Dark header bar + white card body with 8–10 authentic bulleted queries (`• cat interior terbaik`, `• warna cat ruang tamu 2026`, etc.).
+      - **Card 2: `2 · INTEREST`**: Dark header bar + white card body with 8–10 authentic bulleted queries (`• Jotun cat interior`, `• katalog warna cat Jotun 2026`, etc.).
+      - **Card 3: `3 · CONSIDERATION`**: Dark header bar + white card body with 8–10 authentic bulleted queries (`• Jotun vs Dulux interior`, `• review Jotun Majestic`, etc.).
+    - **Bottom Row (2 Cards)**:
+      - **Card 4: `4 · PURCHASE`**: Dark header bar + white card body with 8–10 authentic bulleted queries (`• harga cat Jotun interior`, `• toko cat Jotun terdekat`, etc.).
+      - **Card 5: `5 · AFTER PURCHASE`**: Dark header bar + white card body with 8–10 authentic bulleted queries (`• cara menggunakan cat Jotun`, `• cara membersihkan noda di dinding`, etc.).
+  - **Visual Detail**: Dark header rectangle (`#111827`) with bold white stage label; white card body (`#FFFFFF`) with dark text (`#111827`), crisp bullets, and subtle borders.
 
 ---
 
@@ -90,7 +98,7 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 - **Components**:
   - **Kicker**: `COVERAGE BY ENGINE` or `PLATFORM SPLIT`
   - **Action Title**: Diagnosing root cause (e.g., *"Consistently low — a supply problem, not a platform problem"*)
-  - **3 Platform Cards**: `ChatGPT`, `Google AI Overviews`, `Perplexity` with metrics and citation sources.
+  - **Platform Comparison Cards**: `ChatGPT` vs `Gemini` with visibility metrics, win rates, and citation sources.
   - **Analytical Takeaway Pair**: `⚠ Diagnostic Box` vs `✓ Single-Workstream Opportunity Box`.
 
 ---

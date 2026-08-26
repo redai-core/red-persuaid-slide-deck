@@ -70,9 +70,79 @@
 │   ├── slide-archetypes.md           # 17 slide archetypes & visual specs
 │   ├── interview-framework.md        # 10-dimension deep client discovery engine
 │   └── slide-deck-code-templates.md  # Single-file HTML with PptxGenJS 1-click export templates
+├── engine/                           # 🚀 Stealth Camoufox scraping & auth engine
+│   ├── cli.py                        # CLI entry point (auth, audit, batch)
+│   ├── models.py                     # Pydantic data models (AuditResult, Citation, AccountInfo)
+│   ├── session_manager.py            # Account rotation & profile storage (profiles/)
+│   └── drivers/                      # Stealth drivers (ChatGPT, Gemini)
+├── scripts/                          # Zero-dependency Python automation utilities
+│   ├── aggregate_metrics.py          # GEO audit aggregator (SoV, Win Rate, Funnels, Citations)
+│   └── format_queries.py             # 5-stage search journey query generator
+├── profiles/                         # 🍪 Session cookies & browser data (.gitignored)
+├── pyproject.toml                    # Engine dependencies (camoufox, playwright, pydantic, typer, rich)
 ├── package.sh                        # Builds persuaid.skill for Claude Desktop / Web
 └── README.md
 ```
+
+---
+
+## The All-in-One Automated GEO Pipeline (with `uv` or `python`)
+
+You can run commands using [`uv`](https://github.com/astral-sh/uv) (recommended, zero-config virtualenv) or standard Python:
+
+### 1. Interactive Authentication (Run once to persist cookies)
+```bash
+# Using uv:
+uv run persuaid-geo auth --platform chatgpt --account acc1
+uv run persuaid-geo auth --platform gemini --account acc1
+
+# Or with python:
+python3 -m engine.cli auth --platform chatgpt --account acc1
+python3 -m engine.cli auth --platform gemini --account acc1
+```
+
+### 2. Generate 5-Stage Journey Queries (`scripts/format_queries.py`)
+```bash
+uv run scripts/format_queries.py \
+  --brand "Samsung" \
+  --category "foldable smartphones" \
+  --competitors "OPPO,HONOR,Google Pixel" \
+  --geo "Indonesia" \
+  --out queries.json
+```
+
+### 3. Run Headless Stealth Audit (`engine/cli.py batch`)
+```bash
+# Using uv:
+uv run persuaid-geo batch \
+  --platform chatgpt \
+  --file queries.json \
+  --out results.json
+
+# Or with python:
+python3 -m engine.cli batch \
+  --platform chatgpt \
+  --file queries.json \
+  --out results.json
+```
+
+### 4. Aggregate Metrics & Archetype Payloads (`scripts/aggregate_metrics.py`)
+```bash
+uv run scripts/aggregate_metrics.py \
+  --file results.json \
+  --brand "Samsung" \
+  --out metrics.json
+```
+
+**Computed Metrics:**
+- **AI Share of Voice (SoV) %**: Brand citation rate across queries.
+- **#1 Recommendation Win Rate %**: Frequency of top organic recommendation.
+- **5-Stage Search Journey Funnel**: Discovery, Interest, Consideration, Purchase, After-Purchase.
+- **Top Competitor Presence**: Relative frequency of competitor mentions.
+- **Citation Domain Classification**: Categorizes sources into *Editorial Tech Media*, *Community/Forums*, *Official Channels*, *Marketplaces*, and *Publishers*.
+
+### 5. Generate Executive Presentation Deck (PersuAId Step 2 & 3)
+PersuAId maps the computed `metrics.json` into its 17 modular slide archetypes, generating an in-chat structured presentation and a standalone `presentation.html` with a **1-click "📥 Export .PPTX" button** powered by client-side PptxGenJS (zero external CLI dependencies).
 
 ---
 
@@ -84,4 +154,33 @@ To package this skill as a `.skill` bundle for Claude Desktop or Claude Web:
 ./package.sh
 ```
 
-This generates `dist/persuaid.skill`, which can be imported directly into Claude.
+This generates `dist/persuaid.skill`, bundling `SKILL.md`, `references/`, `scripts/`, and `engine/`.
+
+---
+
+## Testing Guide
+
+### Test 1: Verify Engine Imports & CLI Help
+```bash
+python3 -m engine.cli --help
+python3 scripts/format_queries.py --help
+python3 scripts/aggregate_metrics.py --help
+```
+
+### Test 2: Interactive Auth & Single Headless Audit
+```bash
+# 1. Login once
+python3 -m engine.cli auth --platform chatgpt --account acc1
+
+# 2. Run single query headlessly
+python3 -m engine.cli audit \
+  --platform chatgpt \
+  --query "What are the best foldable smartphones to buy in 2026?" \
+  --brand "Samsung"
+```
+
+### Test 3: In Claude Desktop (Cowork Mode) / Claude Code
+1. In Claude Desktop, link `red-persuaid-slide-deck` as a **Connected Folder** and select **Cowork** mode.
+2. Prompt Claude:
+   > *"Run an audit analysis on `results.json` using PersuAId and build an executive presentation deck for Samsung."*
+3. Claude Cowork executes the aggregation script, designs the narrative architecture, and produces `presentation.html` with 1-click `.pptx` export.

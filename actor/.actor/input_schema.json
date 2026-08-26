@@ -1,0 +1,70 @@
+{
+  "title": "AI Search & Citation Scraper Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "queries": {
+      "title": "Search Queries",
+      "type": "array",
+      "description": "List of user prompts/queries to execute on the target AI platform.",
+      "editor": "json",
+      "prefill": [
+        "Apa saja rekomendasi motor listrik terbaik di Indonesia?",
+        "Perbandingan motor listrik Electrum H5 vs Alva One"
+      ]
+    },
+    "platform": {
+      "title": "Target AI Platform",
+      "type": "string",
+      "description": "The AI search engine platform to scrape.",
+      "editor": "select",
+      "enum": ["chatgpt", "gemini"],
+      "enumTitles": ["OpenAI ChatGPT", "Google Gemini"],
+      "default": "chatgpt"
+    },
+    "brand_name": {
+      "title": "Brand Name",
+      "type": "string",
+      "description": "Target brand name to monitor for presence and citation visibility (e.g. 'Electrum', 'Jotun').",
+      "editor": "textfield"
+    },
+    "brand_domain": {
+      "title": "Brand Domain",
+      "type": "string",
+      "description": "Official brand domain (e.g. 'electrum.id', 'jotun.com') to track official channel citation rate.",
+      "editor": "textfield"
+    },
+    "competitors": {
+      "title": "Competitor Names",
+      "type": "array",
+      "description": "List of competitor brand names to monitor for comparative share of voice.",
+      "editor": "json",
+      "prefill": ["Alva", "Gesits"]
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Proxy configuration for stealth browsing. Residential proxies are strongly recommended to bypass anti-bot challenges.",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true,
+        "apifyProxyGroups": ["RESIDENTIAL"]
+      }
+    },
+    "sessionCookies": {
+      "title": "Session Cookies / Storage State (Optional)",
+      "type": "string",
+      "description": "Serialized JSON string of storage state / cookies for authenticated user sessions.",
+      "editor": "textarea"
+    },
+    "delayBetweenQueries": {
+      "title": "Delay Between Queries (seconds)",
+      "type": "integer",
+      "description": "Seconds to wait between consecutive queries to avoid rate limits.",
+      "default": 3,
+      "minimum": 0,
+      "maximum": 30
+    }
+  },
+  "required": ["queries"]
+}

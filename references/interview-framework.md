@@ -1,72 +1,76 @@
-# Deep Client Interview Framework (Step 1)
+# Strategic Discovery & GEO Engineering Framework (Step 1)
 
-Before drafting any slides, you must gather or extract the core strategic context across **10 core dimensions**. This framework is 100% domain-agnostic and applies equally to consumer goods, B2B software, hardware/EV, healthcare, retail, interior decor, fintech, and professional services.
+This framework governs how PersuAId extracts strategic context from the client and translates it into an AI visibility audit and executive presentation.
 
 ---
 
-## The 10 Core Dimensions
+## Core Philosophy: Division of Responsibility
+
+| Role | Entity | Responsibilities |
+| :--- | :--- | :--- |
+| **Business Reality** | **The Client** | Provides brand name, target geography, buyer personas, product USPs, competitors, and pain points. (Things only the client knows). |
+| **Search Engine Intelligence** | **PersuAId Engine** | **Automatically reverse-engineers** the multi-platform **5-Stage AI Search Journey** (*Discovery*, *Interest*, *Consideration*, *Purchase*, *After-Purchase*) across ChatGPT, Google AI Overviews, Gemini, and Perplexity. |
+
+> ⚠️ **Rule**: The client is **never** asked to formulate or brainstorm search queries. That is the core function of PersuAId's GEO intelligence engine.
+
+---
+
+## Part 1: The Client Interview (Questions for the Client)
+
+When starting a new presentation or audit without a pre-existing brief, ask the user these focused strategic discovery questions:
 
 ### 1. Brand & Web Domain
-- **Brand Name & Entity**: Exact brand name, parent company / corporate backing.
-- **Primary Domain**: Website URL (`example.com`), regional subdomains, e-commerce storefronts.
-- **Brand Standing & Market Tier**: Category leader, legacy incumbent, challenger, or new market entrant.
+* What is the exact brand name, website domain URL, and parent company backing?
+* What is the brand's standing (category leader, legacy incumbent, challenger, or new entrant)?
 
 ### 2. Location & Geographic Scope
-- **Target Geography**: Country, primary metropolitan hubs, and target residential/commercial growth corridors.
-- **Geographic Nuances**: Climate considerations (e.g. tropical humidity, seasonal shifts), urban density, or regional distribution constraints.
+* What is the primary target country and geographic focus (e.g. major metropolitan areas, high-growth regional corridors)?
+* Are there specific regional or climate nuances (e.g. tropical humidity, urban traffic, local infrastructure)?
 
 ### 3. Language & Category Lexicon
-- **Operating Language**: Primary conversational language (e.g. Bahasa Indonesia, English, Spanish).
-- **Loanwords & Industry Terms**: Commonly searched English/technical terms mixed with native language (e.g. *"low odor"*, *"matte finish"*, *"true beauty"*, *"E-E-A-T"*, *"battery swap"*).
+* What is the primary operating language?
+* What common industry loanwords or technical terms do customers use (e.g. *"battery swap"*, *"range anxiety"*, *"TCO"*, *"low odor"*, *"matte finish"*)?
 
-### 4. Target Audience Segments
-- **Broad Market Segments**: B2C retail buyers, young couples/families, home renovators, DIYers, trade professionals (e.g. interior designers, architects, contractors), and enterprise clients.
-- **Decision Influencers**: Who influences the final choice vs who executes the purchase?
+### 4. Target Audience & Buyer Persona
+* Who is your ideal customer (B2C consumers, young families, daily commuters, fleet managers, trade professionals)?
+* What is their key decision-making trigger?
 
-### 5. Named Persona Deep-Dive
-- **Persona Name & Archetype**: (e.g. *"The Home Improvement Planner"*, *"The Pragmatic Fleet Manager"*, *"The Cautious Tech Buyer"*).
-- **Demographics**: Age bracket (e.g. 25–45), life stage, income level.
-- **Psychographics & Behaviors**: High online research activity, seeking aesthetic inspiration, health & family safety conscious, durability-focused, budget-sensitive.
+### 5. Product USPs & The Moat
+* What is your core product offering and flagship line?
+* What makes your product unique, superior, or distinct from alternatives (the unfair advantage or moat)?
 
-### 6. Product Lines & SKU Tiering
-- **Core Product Offerings**: Flagship sub-brands and tiering (e.g. Premium line vs Value/Essence line).
-- **Specific Variants & Formulations**: Specialized solutions (e.g. anti-bacterial, washable, moisture-resistant, high-traffic, low-VOC).
+### 6. Competitor Landscape
+* Who are the top 3–5 market competitors or alternative solutions you want benchmarked?
+* How are competitors currently perceived in the market?
 
-### 7. Competitor Landscape
-- **Primary Direct Alternatives**: Top 4–6 brands competing for mindshare and shelf space.
-- **Competitor Framing & Strengths**:
-  - *Competitor A*: Premium market leader with heavy advertising.
-  - *Competitor B*: Mass-market budget/price champion.
-  - *Competitor C*: Local legacy brand with deep institutional trust.
-  - *Competitor D*: Aggressive digital/new entrant.
-- **Market Perception Delta**: Where does our brand currently sit in user/AI perception vs reality?
-
-### 8. Customer Pain Points (Friction Spectrum)
-- **Aesthetic / Selection Anxiety**: Confusion choosing colors/models, difficulty visualizing in real spaces.
-- **Functional / Environmental Failures**: Mold, moisture, stains, fading, peeling, short lifespan.
-- **Sensory & Safety Concerns**: Harsh chemical odors, toxicity for children/pets, VOC emissions.
-- **Operational & Calculation Friction**: Uncertainty over required quantity, complex application steps, prep requirements.
-
-### 9. Product USPs & The Moat
-- **Tangible Product Advantages**: Expansive color palette, smooth tactile finish, washability, low odor, anti-microbial protection, patented formulations.
-- **Institutional Moat**: Proprietary distribution network, manufacturing scale, global backing, certifications.
-
-### 10. The 5-Stage Search & Buying Journey
-How buyers discover, research, compare, purchase, and troubleshoot across Google and AI search engines (ChatGPT, Google AI Overviews, Perplexity, Microsoft Copilot):
-
-| Journey Stage | Intent Focus | Real-World Query Examples |
-|---|---|---|
-| **1. Discovery** | Category inspiration & broad problem solving | *"Warna cat ruang tamu yang sejuk 2026"*, *"Best interior paint for humid walls"*, *"Cat kamar agar terlihat luas"* |
-| **2. Interest** | Brand-specific discovery, catalogs & specs | *"Katalog warna brand 2026"*, *"Keunggulan product line X"*, *"Cat anti bakteri aman anak"* |
-| **3. Consideration** | Comparative evaluation & product vs product | *"Brand X vs Competitor Y"*, *"Premium line vs Entry line"*, *"Review product X apakah bagus?"* |
-| **4. Purchase** | Finding stores, pricing, calculators & deals | *"Toko cat terdekat"*, *"Official store Tokopedia"*, *"Kalkulator kebutuhan cat kamar 3x4"*, *"Promo terbaru"* |
-| **5. After-Purchase** | Application, troubleshooting & maintenance | *"Cara aplikasi cat yang benar"*, *"Cara membersihkan noda dinding"*, *"Berapa lama cat kering"* |
+### 7. Customer Pain Points & Objections
+* What specific frictions, anxieties, or hesitations prevent customers from buying or adopting your product?
 
 ---
 
-## Interview Execution Protocol
+## Part 2: The AI Reverse-Prompting Engine (PersuAId's Role)
 
-When conducting Step 1 with the user:
-1. **Adaptive Ingestion**: If the user provides a brief, table, or URL upfront, automatically extract and populate the 10 dimensions.
-2. **Targeted Clarification**: Ask focused follow-up questions ONLY for missing or ambiguous dimensions.
-3. **Structured Brief Summary**: Present the completed brief in a structured summary table for the user to validate before moving to Step 2 (Narrative Architecture).
+Once the client provides their business context from Part 1, **PersuAId does NOT guess or hand-craft prompts**. Instead, it **reverse-prompts major AI platforms (ChatGPT, Gemini)** to extract the authentic, high-volume search queries that real users actually ask across the 5 buyer journey stages in the target market:
+
+```
+[ Client Business Context ] ──► [ Reverse-Prompting Engine ] ──► [ Authentic Multi-Platform User Prompts ]
+```
+
+### The 5-Stage AI Search Journey Taxonomy:
+
+| Journey Stage | Strategic Objective | AI Reverse-Prompting Perspective | Target Platforms |
+| :--- | :--- | :--- | :--- |
+| **1. Discovery** | Test unprompted organic category recommendations & pain-point solutions | *"What do real buyers ask when looking for recommendations, best picks, or advice in {category} in {geo}?"* | ChatGPT, Google AIO, Gemini, Perplexity |
+| **2. Interest** | Test brand entity authority, catalog, specs & pricing | *"What prompts do users submit to check {Brand}'s catalog, specifications, features, and price range?"* | ChatGPT, Google AIO, Gemini, Perplexity |
+| **3. Consideration** | Benchmark direct head-to-head positioning & unbiased reviews | *"What head-to-head comparison prompts (e.g. {Brand} vs {Competitor}) and review inquiries do consumers ask?"* | ChatGPT, Google AIO, Gemini, Perplexity |
+| **4. Purchase** | Audit official store presence, dealer network, warranties, promos | *"What prompts do buyers submit when ready to purchase (where to buy, official stores, warranties, subsidies, financing)?"* | ChatGPT, Google AIO, Gemini, Perplexity |
+| **5. After-Purchase** | Audit post-purchase support, durability & maintenance | *"What prompts do owners ask regarding maintenance, common problems, durability, and troubleshooting for {Brand}?"* | ChatGPT, Google AIO, Gemini, Perplexity |
+
+---
+
+## Interview & Execution Protocol
+
+1. **Trigger Interactive Question Popup (`AskUserQuestion`)**: In Step 1, invoke the interactive question tool (`AskUserQuestion`) with structured questions (Brand & Scope, Competitors, Target Audience & USPs) offering smart defaults + custom text input fields (`Other`).
+2. **Hard Stop**: Stop your turn immediately on the interactive question tool call and wait for the client's answers.
+3. **Execute AI Reverse-Prompting (Step 1.5)**: Reverse-prompt ChatGPT / Gemini to extract authentic user queries into `queries.json`, then execute the live batch audit and aggregate quantitative metrics into `metrics.json`.
+4. **Architect Slides (Step 2)**: Present the narrative architecture populated with real audit metrics and ask for approval via `AskUserQuestion`.

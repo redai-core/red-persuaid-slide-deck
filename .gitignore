@@ -8,3 +8,30 @@ Thumbs.db
 # Build & distribution artifacts
 dist/
 *.skill
+
+# Python & Environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+env/
+venv/
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# Local Browser Profiles & Session Tokens (STRICT: Never commit credentials)
+profiles/
+*.session
+*.cookie
+.persuaid/
+
+# Generated Audit Outputs & Test Datasets (Never commit client data)
+results*.json
+queries*.json
+metrics*.json
+*_AI_Search_Journey_*.csv
+*_GEO_Audit_*.pptx
+

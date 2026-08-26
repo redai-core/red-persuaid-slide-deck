@@ -1,0 +1,46 @@
+# Git & Version Control
+.git
+.gitignore
+.github
+
+# Python Caches & Environments
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+
+# Local Dev Artifacts & Distribution
+dist/
+build/
+*.egg-info/
+.DS_Store
+.vscode/
+.idea/
+.zcode/
+actor/
+test_output/
+*.pptx
+*.csv
+results.json
+metrics.json
+
+# Local credentials
+.persuaid/
+credentials.json
+.env
+.env.*

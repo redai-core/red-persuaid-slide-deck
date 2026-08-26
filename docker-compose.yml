@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - APIFY_TOKEN=${APIFY_TOKEN:-}
+      - PERSUAID_AUTH_TOKEN=${PERSUAID_AUTH_TOKEN:-}
+    volumes:
+      - persuaid_data:/app/data
+      - persuaid_creds:/home/appuser/.persuaid
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  persuaid_data:
+  persuaid_creds:

@@ -1,0 +1,33 @@
+[project]
+name = "persuaid"
+version = "1.3.0"
+description = "PersuAId: Executive Presentation Generator & Stealth GEO Auditor"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "camoufox[geoip]>=0.4.0",
+    "playwright>=1.40.0",
+    "pydantic>=2.5.0",
+    "typer>=0.9.0",
+    "rich>=13.7.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.12.0"
+]
+
+[project.scripts]
+persuaid-geo = "engine.cli:app"
+persuaid-mcp = "engine.mcp_server:run_stdio_server"
+persuaid-mcp-http = "engine.mcp_http_server:main"
+
+[tool.setuptools.packages.find]
+include = ["engine*"]
+exclude = ["references*", "scripts*", "profiles*", "dist*"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
