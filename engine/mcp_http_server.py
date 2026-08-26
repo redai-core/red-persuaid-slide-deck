@@ -4,10 +4,11 @@ PersuAId Remote MCP (Model Context Protocol) HTTP & SSE Server
 Provides production-ready HTTP and Server-Sent Events (SSE) transports for Coolify / Docker hosting.
 
 Endpoints:
-- GET  /health, /     : Healthcheck and server capability manifest
+- GET  /health, /     : Healthcheck, server capability manifest, and Claude discovery
 - GET  /sse           : Standard MCP Server-Sent Events stream for remote AI agents (Claude Desktop, Cursor, ZCode)
 - POST /messages      : Session-scoped message handler for SSE transport
 - POST /mcp, /jsonrpc : Direct HTTP JSON-RPC 2.0 endpoint
+- GET  /.well-known/* : Auto-discovery manifests for Claude / MCP client connectors
 """
 
 import asyncio
@@ -55,10 +56,6 @@ def is_authorized(headers: Dict[str, str], query_params: Dict[str, str]) -> bool
     return auth_header == expected or token_param == AUTH_TOKEN
 
 
-# ==============================================================================
-# Standard Library Threading HTTP & SSE Server (Zero external dependencies)
-# ==============================================================================
-
 # Active SSE Sessions: {session_id: Queue}
 active_sse_queues: Dict[str, Queue] = {}
 
@@ -71,8 +68,8 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
 
     def _send_cors_headers(self):
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, HEAD, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, Baggage, Sentry-Trace")
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -80,10 +77,44 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.end_headers()
 
-    def do_GET(self):
+    def do_HEAD(self):
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path
+        if path in ["/health", "/", "", "/sse", "/mcp", "/jsonrpc", "/.well-known/mcp"]:
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+        else:
+            self.send_response(404)
+            self._send_cors_headers()
+            self.end_headers()
+
+    def do_GET(self):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/")
         params = dict(urllib.parse.parse_qsl(parsed.query))
+
+        # Well-known MCP and OAuth discovery endpoints
+        if path in ["/.well-known/mcp", "/.well-known/oauth-protected-resource"]:
+            self.send_response(200)
+            self._send_cors_headers()
+            self.send_header("Content-Type", "application/json")
+            resp = json.dumps({
+                "mcpVersion": "2024-11-05",
+                "transports": ["sse", "http"],
+                "endpoints": {
+                    "sse": "/sse",
+                    "messages": "/messages",
+                    "http": "/mcp"
+                },
+                "serverInfo": SERVER_INFO,
+                "authentication": "none" if not AUTH_TOKEN else "bearer"
+            }).encode("utf-8")
+            self.send_header("Content-Length", str(len(resp)))
+            self.end_headers()
+            self.wfile.write(resp)
+            return
 
         if not is_authorized(dict(self.headers), params):
             self.send_response(401)
@@ -93,7 +124,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"error": "Unauthorized"}).encode("utf-8"))
             return
 
-        if path in ["/health", "/", ""]:
+        if path in ["/health", "/", "", "/mcp"]:
             self.send_response(200)
             self._send_cors_headers()
             self.send_header("Content-Type", "application/json")
@@ -101,10 +132,13 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
                 "status": "healthy",
                 "service": "persuaid-mcp",
                 "version": SERVER_INFO["version"],
-                "transports": {
-                    "sse": "/sse",
-                    "messages": "/messages?session_id=<session_id>",
-                    "direct_http": "/mcp",
+                "mcp": {
+                    "protocol": "2024-11-05",
+                    "transports": {
+                        "sse": "/sse",
+                        "messages": "/messages?session_id=<session_id>",
+                        "direct_http": "/mcp",
+                    }
                 },
                 "tools_count": len(TOOLS),
             }, indent=2).encode("utf-8")
@@ -163,7 +197,7 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
-        path = parsed.path
+        path = parsed.path.rstrip("/")
         params = dict(urllib.parse.parse_qsl(parsed.query))
 
         if not is_authorized(dict(self.headers), params):
@@ -187,8 +221,8 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(json.dumps({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": f"Parse error: {e}"}}).encode("utf-8"))
             return
 
-        if path in ["/mcp", "/jsonrpc"]:
-            # Direct HTTP JSON-RPC endpoint (synchronous)
+        if path in ["/mcp", "/jsonrpc", ""]:
+            # Direct HTTP JSON-RPC endpoint
             response = handle_jsonrpc_request(payload)
             if response is None:
                 self.send_response(204)
