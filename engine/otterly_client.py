@@ -10,6 +10,7 @@ are strictly omitted to prevent accidental credit burn or cost drain.
 """
 
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import ssl
@@ -98,34 +99,93 @@ class OtterlyClient:
             return None
         return None
 
-    def get_brand_stats(self, report_id: str) -> Dict[str, Any]:
+    def get_brand_stats(
+        self,
+        report_id: str,
+        country: str = "id",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        engines: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
         """Fetches aggregate brand report statistics and competitor comparisons."""
-        return self._get(f"/reports/brand/{report_id}/stats")
+        now = datetime.now(timezone.utc).date()
+        end_str = end_date or now.strftime("%Y-%m-%d")
+        start_str = start_date or (now - timedelta(days=30)).strftime("%Y-%m-%d")
+        params: Dict[str, Any] = {
+            "country": country.lower(),
+            "startDate": start_str,
+            "endDate": end_str,
+        }
+        if engines:
+            params["engines"] = engines
+        return self._get(f"/reports/brand/{report_id}/stats", params=params)
 
-    def get_agent_analytics(self, report_id: str) -> Dict[str, Any]:
+    def get_agent_analytics(
+        self,
+        report_id: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Fetches AI crawler server log statistics (GPTBot, ClaudeBot, etc.)."""
+        params: Dict[str, Any] = {}
+        if start_date:
+            params["startDate"] = start_date
+        if end_date:
+            params["endDate"] = end_date
         try:
-            return self._get(f"/reports/brand/{report_id}/agent-analytics/stats")
+            return self._get(f"/reports/brand/{report_id}/agent-analytics/stats", params=params if params else None)
         except Exception:
             return {}
 
-    def get_citations(self, report_id: str, limit: int = 20) -> List[Dict[str, Any]]:
+    def get_citations(
+        self,
+        report_id: str,
+        country: str = "id",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: int = 20,
+    ) -> List[Dict[str, Any]]:
         """Fetches top cited authority sources and domains."""
+        now = datetime.now(timezone.utc).date()
+        end_str = end_date or now.strftime("%Y-%m-%d")
+        start_str = start_date or (now - timedelta(days=30)).strftime("%Y-%m-%d")
+        params: Dict[str, Any] = {
+            "country": country.lower(),
+            "startDate": start_str,
+            "endDate": end_str,
+            "limit": limit,
+        }
         try:
-            res = self._get(f"/reports/brand/{report_id}/citations", params={"limit": limit})
+            res = self._get(f"/reports/brand/{report_id}/citations", params=params)
             return res.get("items", []) if isinstance(res, dict) else []
         except Exception:
             return []
 
-    def get_recommendations(self, report_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def get_recommendations(
+        self,
+        report_id: str,
+        country: str = "id",
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
         """Fetches actionable technical suggestions and prompt improvements."""
+        params: Dict[str, Any] = {
+            "country": country.lower(),
+        }
         try:
-            res = self._get(f"/reports/brand/{report_id}/recommendations", params={"limit": limit})
-            return res.get("items", []) if isinstance(res, dict) else []
+            res = self._get(f"/reports/brand/{report_id}/recommendations", params=params)
+            if isinstance(res, list):
+                return res[:limit]
+            return res.get("items", [])[:limit] if isinstance(res, dict) else []
         except Exception:
             return []
 
-    def fetch_pitch_intel(self, brand_name: str, domain: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def fetch_pitch_intel(
+        self,
+        brand_name: str,
+        domain: Optional[str] = None,
+        country: Optional[str] = None,
+        days: int = 30,
+    ) -> Optional[Dict[str, Any]]:
         """
         High-level aggregator: searches for a pre-configured report, pulls all read-only analytics,
         and packages them directly into the 4 Pitch Proof Weapons schema.
@@ -136,18 +196,46 @@ class OtterlyClient:
             return None
 
         report_id = report.get("id")
-        stats = self.get_brand_stats(report_id)
-        crawler = self.get_agent_analytics(report_id)
-        citations = self.get_citations(report_id, limit=20)
-        recommendations = self.get_recommendations(report_id, limit=10)
 
-        summary = stats.get("summary", {})
-        comp_analysis = stats.get("competitorBrandsAnalysis", [])
+        # Resolve country: explicit -> report.countries[0] -> default "id"
+        target_country = country
+        if not target_country:
+            report_countries = report.get("countries", [])
+            if report_countries and isinstance(report_countries, list) and len(report_countries) > 0:
+                target_country = str(report_countries[0]).lower()
+            else:
+                target_country = "id"
+
+        now = datetime.now(timezone.utc).date()
+        end_date = now.strftime("%Y-%m-%d")
+        start_date = (now - timedelta(days=days)).strftime("%Y-%m-%d")
+
+        try:
+            stats = self.get_brand_stats(
+                report_id, country=target_country, start_date=start_date, end_date=end_date
+            )
+        except Exception as e:
+            print(f"Warning: Failed to fetch brand stats for report {report_id}: {e}", file=sys.stderr)
+            stats = {}
+
+        crawler = self.get_agent_analytics(
+            report_id, start_date=start_date, end_date=end_date
+        )
+        citations = self.get_citations(
+            report_id, country=target_country, start_date=start_date, end_date=end_date, limit=20
+        )
+        recommendations = self.get_recommendations(
+            report_id, country=target_country, limit=10
+        )
+
+        summary = stats.get("summary", {}) if isinstance(stats, dict) else {}
+        comp_analysis = stats.get("competitorBrandsAnalysis", []) if isinstance(stats, dict) else []
 
         # 1. ARCH-HERO-STAT: The Wake-Up Call
+        sov = summary.get("shareOfVoice")
         hero_stat = {
             "brand": report.get("brand"),
-            "share_of_voice_pct": round(summary.get("shareOfVoice", 0) * 100, 1),
+            "share_of_voice_pct": round(sov * 100, 1) if sov is not None else 0.0,
             "average_rank": summary.get("averageRank", 0),
             "total_mentions": summary.get("totalMentions", 0),
         }

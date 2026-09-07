@@ -45,6 +45,43 @@ class TestOtterlyClient(unittest.TestCase):
             report = self.client.find_brand_report("NonExistentBrand")
             self.assertIsNone(report)
 
+    def test_get_brand_stats_includes_required_query_params(self):
+        with patch.object(self.client, "_get", return_value={"summary": {}}) as mock_get:
+            self.client.get_brand_stats(
+                "rep_123", country="id", start_date="2026-08-01", end_date="2026-08-31"
+            )
+            mock_get.assert_called_once_with(
+                "/reports/brand/rep_123/stats",
+                params={
+                    "country": "id",
+                    "startDate": "2026-08-01",
+                    "endDate": "2026-08-31",
+                },
+            )
+
+    def test_get_citations_includes_required_query_params(self):
+        with patch.object(self.client, "_get", return_value={"items": []}) as mock_get:
+            self.client.get_citations(
+                "rep_123", country="id", start_date="2026-08-01", end_date="2026-08-31", limit=15
+            )
+            mock_get.assert_called_once_with(
+                "/reports/brand/rep_123/citations",
+                params={
+                    "country": "id",
+                    "startDate": "2026-08-01",
+                    "endDate": "2026-08-31",
+                    "limit": 15,
+                },
+            )
+
+    def test_get_recommendations_includes_country_param(self):
+        with patch.object(self.client, "_get", return_value=[]) as mock_get:
+            self.client.get_recommendations("rep_123", country="id", limit=5)
+            mock_get.assert_called_once_with(
+                "/reports/brand/rep_123/recommendations",
+                params={"country": "id"},
+            )
+
     def test_fetch_pitch_intel_normalizes_weapons(self):
         report = {"id": "rep_123", "brand": "Electrum", "brandDomain": "electrum.id"}
         stats = {
