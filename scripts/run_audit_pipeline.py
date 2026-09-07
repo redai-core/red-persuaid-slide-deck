@@ -61,7 +61,9 @@ def run_pipeline(
     audit_all: bool = False,
     otterly_key: str = None,
     no_otterly: bool = False,
+    generate_deck: bool = False,
 ):
+
     out_path = Path(out_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 
@@ -270,6 +272,26 @@ def run_pipeline(
         metrics_json.write_text(json.dumps(metrics, indent=2, ensure_ascii=False))
         print(f"   ✓ Quantitative metrics aggregated -> {metrics_json}\n")
 
+        # Compile Full 21-Slide Executive Presentation Deck
+        deck_path = None
+        if generate_deck:
+            try:
+                from engine.deckcraft.builder import compile_deck
+                print(f"🎨 Compiling 21-slide Redcomm executive GEO pitch deck...")
+                deck_path = compile_deck(
+                    brand=brand,
+                    category=category,
+                    competitors=competitors,
+                    domain=domain,
+                    metrics_path=str(metrics_json),
+                    out_dir=str(out_path),
+                    year=year,
+                )
+                print(f"   ✓ 21-slide executive presentation generated -> {deck_path}\n")
+            except Exception as e:
+                print(f"   ⚠ Warning: Failed to generate deck: {e}", file=sys.stderr)
+
+
 
         # Executive Summary Printout
         kpis = metrics.get("kpis", {})
@@ -295,12 +317,14 @@ def run_pipeline(
         return {
             "metrics": metrics,
             "otterly_intel": otterly_intel,
+            "deck_path": str(deck_path) if deck_path else None,
             "queries": sampled_batch,
             "all_queries": queries,
             "results": all_results,
             "csv_itemized_content": csv_itemized.read_text(encoding="utf-8") if csv_itemized.exists() else "",
             "csv_matrix_content": csv_matrix.read_text(encoding="utf-8") if csv_matrix.exists() else "",
         }
+
 
 
     except Exception as e:
@@ -330,6 +354,7 @@ def main():
 
     parser.add_argument("--samples-per-stage", type=int, default=2, help="Number of queries to sample per stage for live audit (default: 2)")
     parser.add_argument("--audit-all", action="store_true", help="Audit all gathered queries instead of sampling")
+    parser.add_argument("--generate-deck", action="store_true", help="Generate 21-slide Redcomm executive GEO presentation (.pptx)")
 
     args = parser.parse_args()
     target_platform = args.platforms or args.platform
@@ -350,11 +375,12 @@ def main():
         apify_token=args.apify_token,
         otterly_key=args.otterly_key,
         no_otterly=args.no_otterly,
+        generate_deck=args.generate_deck,
         max_per_stage=args.max_per_stage,
-
         samples_per_stage=args.samples_per_stage,
         audit_all=args.audit_all,
     )
+
 
 
 if __name__ == "__main__":
