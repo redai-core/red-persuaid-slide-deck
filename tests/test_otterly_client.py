@@ -82,6 +82,67 @@ class TestOtterlyClient(unittest.TestCase):
                 params={"country": "id"},
             )
 
+    def test_fetch_pitch_intel_handles_real_openapi_dict_structure(self):
+        report = {
+            "id": "01M0DRRF1FNYGNW20W0Q916HB1",
+            "brand": "Auto2000",
+            "brandDomain": "auto2000.co.id",
+            "countries": ["id"],
+        }
+        stats = {
+            "id": "01M0DRRF1FNYGNW20W0Q916HB1",
+            "summary": {
+                "shareOfVoice": 0.18,
+                "averageRank": 2.1,
+                "totalMentions": 42,
+            },
+            # Real OpenAPI schema: competitorBrandsAnalysis is an object containing brandMentions array
+            "competitorBrandsAnalysis": {
+                "brandMentions": [
+                    {"brand": "Toyota Astra", "shareOfVoice": 0.52, "averageRank": 1.1, "isMainBrand": False},
+                    {"brand": "Daihatsu", "shareOfVoice": 0.30, "averageRank": 2.5, "isMainBrand": False},
+                ],
+                "brandCoverageHistory": [],
+                "domainCoverageHistory": [],
+            },
+        }
+        crawler = {
+            "totalAgentVisits": 120,
+            "pagesVisited": 15,
+            "topEngine": "chatgpt",
+        }
+        # Real OpenAPI schema: citations use url and citations
+        citations = [
+            {"domain": "kompas.com", "citations": 88, "url": "https://kompas.com/oto/1", "title": "Top Dealer"},
+        ]
+        # Real OpenAPI schema: recommendations
+        recommendations = [
+            {
+                "id": "rec_auto_1",
+                "priority": 5,
+                "type": "content_partnership_opportunities",
+                "copy": {
+                    "title": "Partner with Otomotif Media",
+                    "reasoning": "High AI citation volume.",
+                },
+            }
+        ]
+
+        with patch.object(self.client, "find_brand_report", return_value=report):
+            with patch.object(self.client, "get_brand_stats", return_value=stats):
+                with patch.object(self.client, "get_agent_analytics", return_value=crawler):
+                    with patch.object(self.client, "get_citations", return_value=citations):
+                        with patch.object(self.client, "get_recommendations", return_value=recommendations):
+                            intel = self.client.fetch_pitch_intel("Auto2000", "auto2000.co.id")
+                            self.assertIsNotNone(intel)
+                            self.assertEqual(intel["hero_stat"]["share_of_voice_pct"], 18.0)
+                            self.assertEqual(len(intel["competitor_gap"]), 2)
+                            self.assertEqual(intel["competitor_gap"][0]["competitor"], "Toyota Astra")
+                            self.assertEqual(intel["competitor_gap"][0]["share_of_voice_pct"], 52.0)
+                            self.assertEqual(intel["citation_matrix"][0]["volume"], 88)
+                            self.assertEqual(intel["citation_matrix"][0]["citation_url"], "https://kompas.com/oto/1")
+                            self.assertEqual(intel["retainer_actions"][0]["title"], "Partner with Otomotif Media")
+
     def test_fetch_pitch_intel_normalizes_weapons(self):
         report = {"id": "rep_123", "brand": "Electrum", "brandDomain": "electrum.id"}
         stats = {

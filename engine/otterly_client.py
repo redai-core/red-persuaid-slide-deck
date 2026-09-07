@@ -229,7 +229,23 @@ class OtterlyClient:
         )
 
         summary = stats.get("summary", {}) if isinstance(stats, dict) else {}
-        comp_analysis = stats.get("competitorBrandsAnalysis", []) if isinstance(stats, dict) else []
+
+        # competitorBrandsAnalysis is an object containing brandMentions in OpenAPI spec
+        comp_analysis_raw = stats.get("competitorBrandsAnalysis", {}) if isinstance(stats, dict) else {}
+        if isinstance(comp_analysis_raw, dict):
+            comp_analysis = comp_analysis_raw.get("brandMentions", [])
+        elif isinstance(comp_analysis_raw, list):
+            comp_analysis = comp_analysis_raw
+        else:
+            comp_analysis = []
+
+        if not comp_analysis and isinstance(stats, dict):
+            all_brands_raw = stats.get("allBrandsAnalysis", {})
+            if isinstance(all_brands_raw, dict):
+                comp_analysis = [
+                    b for b in all_brands_raw.get("brandMentions", [])
+                    if isinstance(b, dict) and not b.get("isMainBrand", False)
+                ]
 
         # 1. ARCH-HERO-STAT: The Wake-Up Call
         sov = summary.get("shareOfVoice")
@@ -242,40 +258,63 @@ class OtterlyClient:
 
         # 2. ARCH-TECH-AUDIT: The Smoking Gun (Bot Analytics)
         smoking_gun = {
-            "total_agent_visits": crawler.get("totalAgentVisits", 0),
-            "pages_visited": crawler.get("pagesVisited", 0),
-            "top_engine": crawler.get("topEngine", "Unknown"),
-            "trend": crawler.get("trend", []),
+            "total_agent_visits": crawler.get("totalAgentVisits", 0) if isinstance(crawler, dict) else 0,
+            "pages_visited": crawler.get("pagesVisited", 0) if isinstance(crawler, dict) else 0,
+            "top_engine": crawler.get("topEngine", "Unknown") if isinstance(crawler, dict) else "Unknown",
+            "trend": crawler.get("trend", []) if isinstance(crawler, dict) else [],
         }
 
         # 3. ARCH-GAP-BAR: Competitor Threat Matrix
         competitor_gap = []
+        base_sov = summary.get("shareOfVoice") or 0.0
         for comp in comp_analysis:
+            if not isinstance(comp, dict):
+                continue
+            comp_brand = comp.get("brand") or comp.get("name")
+            if not comp_brand or comp.get("isMainBrand", False):
+                continue
+            comp_sov = comp.get("shareOfVoice", 0)
             competitor_gap.append({
-                "competitor": comp.get("brand"),
-                "share_of_voice_pct": round(comp.get("shareOfVoice", 0) * 100, 1),
+                "competitor": comp_brand,
+                "share_of_voice_pct": round(comp_sov * 100, 1),
                 "average_rank": comp.get("averageRank", 0),
-                "gap_pct": round((comp.get("shareOfVoice", 0) - summary.get("shareOfVoice", 0)) * 100, 1),
+                "gap_pct": round((comp_sov - base_sov) * 100, 1),
             })
 
         # 4. ARCH-SOURCE-MATRIX: Citation Hijack
         citation_matrix = []
         for c in citations[:10]:
+            if not isinstance(c, dict):
+                continue
             citation_matrix.append({
-                "domain": c.get("domain"),
-                "volume": c.get("volume", 0),
-                "citation_url": c.get("citationUrl", ""),
+                "domain": c.get("domain", ""),
+                "volume": c.get("citations", c.get("volume", 0)),
+                "citation_url": c.get("url", c.get("citationUrl", "")),
+                "title": c.get("title", ""),
+                "domain_category": c.get("domainCategory", ""),
             })
 
         # 5. ARCH-PRIORITY-ACTION: Retainer Scope of Work
         retainer_actions = []
         for rec in recommendations[:5]:
-            copy = rec.get("copy", {})
+            if not isinstance(rec, dict):
+                continue
+            copy = rec.get("copy")
+            if isinstance(copy, dict):
+                title = copy.get("title") or copy.get("headline") or "SEO Optimization"
+                reasoning = copy.get("reasoning") or ""
+            elif isinstance(copy, str):
+                title = copy
+                reasoning = ""
+            else:
+                title = str(rec.get("type", "GEO Remediation")).replace("_", " ").title()
+                reasoning = ""
+
             retainer_actions.append({
                 "id": rec.get("id"),
-                "priority": rec.get("priority", "MEDIUM"),
-                "title": copy.get("title") or copy.get("headline") or "SEO Optimization",
-                "reasoning": copy.get("reasoning") or copy.get("suggestions") or "",
+                "priority": str(rec.get("priority", "MEDIUM")),
+                "title": title,
+                "reasoning": reasoning,
             })
 
         return {
