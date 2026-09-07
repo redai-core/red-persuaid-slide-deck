@@ -87,3 +87,32 @@ def resolve_apify_token(override: Optional[str] = None) -> Optional[str]:
 def has_apify_token() -> bool:
     """Returns True if an Apify token is available in environment or local config."""
     return resolve_apify_token() is not None
+
+
+def resolve_otterly_key(override: Optional[str] = None) -> Optional[str]:
+    """
+    Resolves the active Otterly API key in priority order:
+    1. Direct override (e.g. from CLI --otterly-key) -> automatically persists locally
+    2. OTTERLY_API_KEY environment variable
+    3. Stored token in ~/.persuaid/credentials.json under "otterly_api_key"
+    Returns None if no key is configured.
+    """
+    if override and override.strip():
+        token = override.strip()
+        try:
+            store_token(token, key="otterly_api_key")
+        except Exception:
+            pass
+        return token
+
+    env_token = os.environ.get("OTTERLY_API_KEY")
+    if env_token and env_token.strip():
+        return env_token.strip()
+
+    return get_stored_token("otterly_api_key")
+
+
+def has_otterly_key() -> bool:
+    """Returns True if an Otterly API key is available in environment or local config."""
+    return resolve_otterly_key() is not None
+
