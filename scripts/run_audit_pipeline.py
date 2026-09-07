@@ -38,7 +38,8 @@ from scripts.format_queries import (
     export_matrix_csv,
 )
 from scripts.aggregate_metrics import aggregate_audit_results
-from engine.credentials import resolve_apify_token, has_apify_token
+from engine.credentials import resolve_apify_token, has_apify_token, resolve_otterly_key, has_otterly_key
+from engine.otterly_client import OtterlyClient
 
 
 def run_pipeline(
@@ -58,11 +59,14 @@ def run_pipeline(
     max_per_stage: int = 5,
     samples_per_stage: int = 2,
     audit_all: bool = False,
+    otterly_key: str = None,
+    no_otterly: bool = False,
 ):
     out_path = Path(out_dir).resolve()
     out_path.mkdir(parents=True, exist_ok=True)
 
     active_token = resolve_apify_token(apify_token)
+    active_otterly_key = resolve_otterly_key(otterly_key)
 
     brand_slug = brand.strip().replace(" ", "_")
     csv_itemized = out_path / f"{brand_slug}_AI_Search_Journey_Prompts.csv"
@@ -73,6 +77,24 @@ def run_pipeline(
 
     comp_list = [c.strip() for c in competitors.split(",") if c.strip()]
     platforms_list = [p.strip().lower() for p in platform.split(",") if p.strip()]
+
+    # -------------------------------------------------------------
+    # Step 0: Otterly.ai Pre-Configured Pitch Intelligence Check
+    # -------------------------------------------------------------
+    otterly_intel = None
+    if not no_otterly and (active_otterly_key or has_otterly_key()):
+        try:
+            otterly_client = OtterlyClient(api_key=active_otterly_key)
+            print(f"[*] Checking Otterly API for pre-configured report for '{brand}'...")
+            otterly_intel = otterly_client.fetch_pitch_intel(brand, domain)
+            if otterly_intel:
+                print(f"[✓] Ingested Otterly pitch intelligence for '{brand}' (SoV: {otterly_intel['hero_stat']['share_of_voice_pct']}%)")
+                intel_path = out_path / "otterly_intel.json"
+                intel_path.write_text(json.dumps(otterly_intel, indent=2, ensure_ascii=False), encoding="utf-8")
+            else:
+                print(f"[Otterly API: No pre-configured report found for '{brand}'. Preserving credits and proceeding with standard live Apify audit.]")
+        except Exception as e:
+            print(f"[Otterly API Notice: {e}. Proceeding with standard live Apify audit.]")
 
     print(f"\n========================================================")
     print(f"🚀 PERSUAID ALL-IN-ONE GEO AUDIT PIPELINE")
@@ -88,8 +110,10 @@ def run_pipeline(
     print(f"   Audit Mode:        {'ALL Prompts' if audit_all else f'Sample ({samples_per_stage}/stage)'}")
     print(f"   Engine Mode:       {'Headless (Unauthenticated)' if headless else 'Headed'}")
     print(f"   Provider:          {provider.upper()} (Token: {'AUTHENTICATED' if active_token else 'NOT CONFIGURED'})")
+    print(f"   Otterly Intel:     {'ATTACHED' if otterly_intel else ('AVAILABLE (No Report)' if active_otterly_key else 'NOT CONFIGURED')}")
     print(f"   Output Dir:        {out_path}")
     print(f"========================================================\n")
+
 
     # -------------------------------------------------------------
     # Step 1: Reverse-Prompting & CSV Deliverables Generation
@@ -241,8 +265,11 @@ def run_pipeline(
             known_competitors=comp_list,
             brand_domain=domain,
         )
+        if otterly_intel:
+            metrics["otterly_intel"] = otterly_intel
         metrics_json.write_text(json.dumps(metrics, indent=2, ensure_ascii=False))
         print(f"   ✓ Quantitative metrics aggregated -> {metrics_json}\n")
+
 
         # Executive Summary Printout
         kpis = metrics.get("kpis", {})
@@ -267,12 +294,14 @@ def run_pipeline(
 
         return {
             "metrics": metrics,
+            "otterly_intel": otterly_intel,
             "queries": sampled_batch,
             "all_queries": queries,
             "results": all_results,
             "csv_itemized_content": csv_itemized.read_text(encoding="utf-8") if csv_itemized.exists() else "",
             "csv_matrix_content": csv_matrix.read_text(encoding="utf-8") if csv_matrix.exists() else "",
         }
+
 
     except Exception as e:
         print(f"❌ Error calculating metrics: {e}", file=sys.stderr)
@@ -295,7 +324,10 @@ def main():
     parser.add_argument("--no-reverse-prompt", action="store_true", help="Skip live reverse prompting and use template generation")
     parser.add_argument("--provider", default="auto", choices=["auto", "apify", "camoufox"], help="Execution engine provider (default: auto)")
     parser.add_argument("--apify-token", default=None, help="Apify API token for cloud execution")
+    parser.add_argument("--otterly-key", default=None, help="Otterly API key override")
+    parser.add_argument("--no-otterly", action="store_true", help="Skip Otterly check even if API key is configured")
     parser.add_argument("--max-per-stage", type=int, default=5, help="Max queries to gather per stage (default: 5)")
+
     parser.add_argument("--samples-per-stage", type=int, default=2, help="Number of queries to sample per stage for live audit (default: 2)")
     parser.add_argument("--audit-all", action="store_true", help="Audit all gathered queries instead of sampling")
 
@@ -316,7 +348,10 @@ def main():
         reverse_prompt=not args.no_reverse_prompt,
         provider=args.provider,
         apify_token=args.apify_token,
+        otterly_key=args.otterly_key,
+        no_otterly=args.no_otterly,
         max_per_stage=args.max_per_stage,
+
         samples_per_stage=args.samples_per_stage,
         audit_all=args.audit_all,
     )
