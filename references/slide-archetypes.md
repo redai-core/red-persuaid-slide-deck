@@ -18,15 +18,16 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 
 ## 2. Core Finding / Hero Stat Quad (`ARCH-HERO-STAT`)
 - **Visual Structure**: 4-column metric grid or 2x2 hero card grid above a dual-column synthesis box.
+- **Pitch Room Objective**: The Executive Wake-Up Call. Exposes the client's AI visibility blind spot despite strong legacy SEO investment.
 - **Components**:
   - **Kicker**: `CORE FINDING` or `EXECUTIVE SUMMARY`
-  - **Action Title**: Assertive takeaway (e.g., *"Visible but underpowered — the AI gap is real"*)
+  - **Action Title**: Assertive takeaway (e.g., *"Dominant in traditional Google, but invisible to AI engines in 78% of high-intent prompts"*).
   - **Metric Grid (4 Cards)**:
-    1. Hero Percentage / Primary Metric (e.g., `9.3%` - *of AI answers mention Client*)
-    2. Category Ranking (e.g., `#4` - *among category brands*)
-    3. Qualitative Score / Benchmark (e.g., `63 / 100` - *average sentiment when named*)
-    4. Top-Subsegment Stat (e.g., `18%` - *of mentions place Client #1 on niche queries*)
-  - **"What this means" Callout**: High-contrast box clarifying that the gap is operational/distribution, not capability/reputation.
+    1. **Blended Share of Voice %**: Overall category visibility across tracked AI prompts (e.g., `14.2%` - *category presence*).
+    2. **The Blind Spot Metric**: Lowest performing engine exposing vulnerability (e.g., `0.0%` - *visibility on Perplexity AI* or `12% vs 48%` *ChatGPT vs Gemini*).
+    3. **#1 Recommendation Win Rate**: Frequency of holding the #1 top recommended spot (e.g., `8.5%` - *#1 rank share*).
+    4. **Citation Market Share**: Share of total third-party citations owned vs rivals (e.g., `6.1%` - *of category citations*).
+  - **"What this means" Callout**: High-contrast box clarifying that buyers are shifting to AI search where competitors currently own the default recommendation.
 
 ---
 
@@ -68,28 +69,30 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 
 ## 5. Technical GEO & Authority Audit (`ARCH-TECH-AUDIT`)
 - **Visual Structure**: 2x3 scorecard grid with score badges, status indicators, and evaluation bullets.
+- **Pitch Room Objective**: The "Smoking Gun" Technical Proof. Replaces subjective opinions with hard server log crawler data, proving the client's own tech stack is rejecting AI bots.
 - **Components**:
-  - **Kicker**: `ON-PAGE TECHNICAL AUDIT` or `GEO SCORECARD`
-  - **Action Title**: Audit conclusion (e.g., *"High domain authority undermined by unstructured page schemas"*)
+  - **Kicker**: `ON-PAGE TECHNICAL AUDIT` or `THE SMOKING GUN`
+  - **Action Title**: Audit conclusion (e.g., *"Your architecture is actively rejecting AI models: 58% of GPTBot crawl attempts fail"*).
   - **Audit Dimension Cards (6 Cards)**:
-    1. `AI Citability Score`: Structural readiness for LLM extraction (e.g., `Score: 58/100 · Moderate`).
-    2. `Brand Authority & Trust`: Domain rating, editorial backlinks, media mentions.
-    3. `Content E-E-A-T`: Expertise, author credentials, demonstrable proof points.
-    4. `Technical GEO Readiness`: Semantic headers, concise answer blocks, quotable snippets.
-    5. `Schema & Structured Data`: FAQSchema, ProductSchema, HowToSchema implementation.
-    6. `Platform Optimization`: Multi-engine crawler accessibility and indexing health.
-  - **"What this means" Callout**: Prioritized technical remediation steps to maximize citability.
+    1. **AI Bot Crawl Traffic**: Real crawl attempt volumes from server logs / Otterly Agent Stats (e.g., `GPTBot: 840 visits/mo | ClaudeBot: 310 visits/mo`).
+    2. **Crawl Blockers & Render Walls**: Technical failure rate (e.g., `58% Blocked` - *client-side JS hydration timeout & 403 blocks*).
+    3. **Robots.txt & AI Governance**: Crawl directive health (e.g., `Status: At Risk` - *PerplexityBot blocked; GPTBot throttled*).
+    4. **Content E-E-A-T & Quotability**: Structural readiness for LLM extraction (e.g., `Quotable Snippets: 32/100 · Weak`).
+    5. **Schema & Knowledge Graph**: Implementation of FAQSchema, MedicalEntity/ProductSchema, and Wikidata anchoring.
+    6. **Platform Indexation Health**: Readiness across ChatGPT Search, Perplexity Sonar, and Google Gemini.
+  - **"What this means" Callout**: Undeniable executive synthesis showing that fixing technical crawler accessibility is prerequisite to any marketing campaign.
 
 ---
 
 ## 6. Competitor Share / Gap Bar Chart (`ARCH-GAP-BAR`)
 - **Visual Structure**: Horizontal bar chart on left with analytical driver cards on right.
+- **Pitch Room Objective**: The Competitive Threat / FOMO. Demonstrates that rivals own the default recommendation and citation ecosystem.
 - **Components**:
   - **Kicker**: `THE KEY GAP` or `MARKET SHARE DISTRIBUTION`
-  - **Action Title**: Comparative verdict (e.g., *"AI defaults to established players — Brand barely registers"*)
-  - **Ranked Horizontal Bars / Percentages**: Competitor share vs Client share.
-  - **"Why does this happen?" Driver List**: 4 icon-anchored drivers explaining why competitors win.
-  - **"What this means" Callout**: Strategic imperative to bridge the gap.
+  - **Action Title**: Comparative verdict (e.g., *"[Competitor] has captured category mindshare — owning 52% of all AI citations"*).
+  - **Ranked Horizontal Bars / Percentages**: Competitor citation share % vs Client share %, with average recommendation rank deltas.
+  - **"Why does this happen?" Driver List**: 4 icon-anchored drivers explaining why competitors win (e.g., Structured schema dominance, third-party authority citations, dynamic rendering unblocked).
+  - **"What this means" Callout**: Strategic imperative to reclaim category recommendation leadership before competitor moat deepens.
 
 ---
 
@@ -133,11 +136,12 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 
 ## 11. Source Base / Ecosystem Matrix (`ARCH-SOURCE-MATRIX`)
 - **Visual Structure**: Structured executive data table with styled column badges.
+- **Pitch Room Objective**: The Authority Ecosystem. Shows the client exactly where AI models get their facts—proving that on-page SEO is only half the battle.
 - **Components**:
   - **Kicker**: `THE SOURCE BASE` or `CHANNEL ATTRIBUTION`
-  - **Action Title**: Pinpointing citation drivers (e.g., *"Where these answers come from"*)
-  - **Table Columns**: `SOURCE TYPE` | `IN THE DATA` | `WHY IT MATTERS` | `LEVER`
-  - **"What this means" Callout**: Highlighting the primary 1-2 levers that drive 80% of citations.
+  - **Action Title**: Pinpointing citation drivers (e.g., *"Where AI answers originate: 4 authority hubs dictate 78% of citations"*).
+  - **Table Columns / Top Cited Root Domains**: Leaderboard of top citation sources (`DOMAIN / SOURCE TYPE` | `CITATION FREQUENCY` | `CATEGORY ROLE` | `CLIENT ACTION LEVER`).
+  - **"What this means" Callout**: Proving that winning AI search requires targeted seeding and co-citation on the specific 3-4 third-party authority portals that LLMs treat as canonical ground truth.
 
 ---
 
@@ -165,10 +169,11 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 
 ## 14. Priority Action 30 Days & Phased Roadmap (`ARCH-PRIORITY-ACTION`)
 - **Visual Structure**: Left side: 30-Day Sprint Checklist (Immediate Quick Wins); Right side: 6-Month Phased Roadmap.
+- **Pitch Room Objective**: The Pitch Close / Retainer SOW. Bridges the gap between the identified problems and a billable engagement structure.
 - **Components**:
   - **Kicker**: `ACTION PLAN` or `EXECUTION TRAJECTORY`
   - **Action Title**: Clear sequencing (e.g., *"30-day foundational sprint followed by 6-month scale"*)
-  - **30-Day Sprint Box**: 4-5 immediate actionable quick wins (e.g. fix schema, launch room calculator, seed top 5 threads).
+  - **30-Day Sprint Box (Immediate Remediation Tickets)**: Injects concrete crawlability and schema fixes directly from audit findings (e.g. unblock GPTBot in Cloudflare CDN firewall, prerender core service pages, deploy JSON-LD FAQ/Service schema, claim entity authority).
   - **6-Month Phase Roadmap (3 Phases)**:
     - Phase 1 (Month 1-2): Foundation & On-Page Restructuring.
     - Phase 2 (Month 3-4): Community Authority & Citations Expansion.
