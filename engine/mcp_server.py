@@ -604,7 +604,7 @@ def handle_persuaid_start_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
                 job_record["duration_seconds"] = round(time.time() - job_record["start_time"], 1)
                 job_record["result"] = res
                 job_record["progress"] = "Audit completed successfully."
-        except Exception as ex:
+        except BaseException as ex:
             with _JOBS_LOCK:
                 job_record["status"] = "error"
                 job_record["error"] = str(ex)

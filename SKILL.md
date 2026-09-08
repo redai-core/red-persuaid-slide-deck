@@ -25,6 +25,7 @@ Whenever PersuAId is triggered, prefix your first response with:
 - **Visual Chunking**: Use metric hero cards, 5-stage search journey funnels, scorecard grids, comparative matrices, and phased roadmaps.
 - **Executive Takeaways**: Every analytical slide concludes with a concise **"What this means:"** takeaway translating data into strategic imperatives.
 - **Widescreen 16:9 HD**: Designed for standard modern executive presentation formats (`13.333" × 7.5"`).
+- **Live Tool Truth (Strict Anti-Cheating Protocol)**: The agent must discover live brand intelligence purely through the active MCP tools (Otterly MCP or live tactical audit) and must **NEVER** cheat by reading pre-computed local files on the user's filesystem, mock test fixtures (e.g. in `tests/`), cached scratch files, or past session leftovers. If data is not returned by the live tool call or provided explicitly in the brief, query the tool or ask the user—never hallucinate or harvest local mock fixtures.
 
 ---
 

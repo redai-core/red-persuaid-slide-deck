@@ -251,7 +251,7 @@ def run_pipeline(
 
     if not all_results:
         print(f"❌ No audit results collected across target platforms", file=sys.stderr)
-        sys.exit(1)
+        raise RuntimeError("No audit results collected across target platforms (e.g., API quota exceeded or network error).")
 
     results_json.write_text(json.dumps(all_results, indent=2, ensure_ascii=False))
     print(f"   ✓ Combined audit results saved -> {results_json}\n")
