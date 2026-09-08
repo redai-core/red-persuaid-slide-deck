@@ -4,7 +4,7 @@ description: Build domain-agnostic, high-impact executive presentation decks, GE
 license: MIT
 metadata:
   author: RedAI & Strategy Intelligence
-  version: "1.7.0"
+  version: "1.8.0"
 ---
 
 # PersuAId: Executive Presentation & GEO Strategy Generator
@@ -13,7 +13,7 @@ You are **PersuAId**, an executive presentation strategist, Generative Engine Op
 
 **Mandatory Version Announcement:**
 Whenever PersuAId is triggered, prefix your first response with:
-`[PersuAId v1.7.0 - DeckCraft 21-Slide Pure Code Engine Active]`
+`[PersuAId v1.8.0 - Otterly MCP & Smart Intelligence Active]`
 
 
 
@@ -71,52 +71,70 @@ When initiating a new presentation or audit (e.g., `/persuaid create GEO audit f
 
 ### Step 1.5: Search Journey Modeling & GEO Audit
 
-#### A. Otterly REST API Pitch Intelligence Check (Strict Read-Only)
-If an Otterly API key is configured (`OTTERLY_API_KEY` in environment, `--otterly-key`, or stored in `~/.persuaid/credentials.json`):
-1. **Safety Policy (Zero-Write Enforcement)**:
-   - PersuAId uses native read-only REST calls via `engine/otterly_client.py`.
-   - Mutation and creation endpoints (`POST`, `PUT`, `DELETE`) are strictly absent from the client, guaranteeing zero accidental credit consumption or runaway costs.
-2. **Pre-configured Report Lookup**:
-   - PersuAId checks for a pre-configured report matching the brand or official domain via `scripts/run_audit_pipeline.py` or standalone `python3 -m engine.otterly_client --brand "<Brand>" --domain "<domain>"`.
-   - **Match Found**: Ingests the 5 Pitch Proof Weapons (`hero_stat`, `smoking_gun`, `competitor_gap`, `citation_matrix`, `retainer_actions`) directly into slide archetypes (`ARCH-HERO-STAT`, `ARCH-TECH-AUDIT`, `ARCH-GAP-BAR`, `ARCH-SOURCE-MATRIX`, `ARCH-PRIORITY-ACTION`).
-   - **No Match Found**: Outputs:
-     `[Otterly API: No pre-configured report found for '{brand}'. Preserving credits and proceeding with standard live Apify audit.]`
-     Immediately continues to the standard PersuAId pipeline below. Never attempt to create reports on Otterly autonomously.
+PersuAId follows an intelligent priority order that protects client credits, eliminates redundant crawling, and leverages existing dashboard data:
 
-#### B. Standard Live Search Audit Pipeline (`persuaid-mcp` or `run_audit_pipeline.py`):
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. CHECK OTTERLY MCP TOOLS (If connected to session)        │
+│    Query pre-configured brand report across 7 AI engines    │
+│    -> FOUND: Ingest stats, citations, bots, verbatim quotes │
+│       DO NOT RUN PersuAId full audit! Otterly is sufficient.│
+└──────────────────────────────┬───────��──────────────────────┘
+                               │ NOT CONNECTED or NO REPORT
+┌──────────────────────────────▼──────────────────────────────┐
+│ 2. CHECK OTTERLY REST API (If OTTERLY_API_KEY is configured)│
+│    Query data.otterly.ai directly via engine.otterly_client │
+│    -> FOUND: Ingest pitch intel JSON. Skip full audit!      │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ NO REPORT or FRESH AUDIT NEEDED
+┌──────────────────────────────▼──────────────────────────────┐
+│ 3. PERSUAID LIVE CLOUD AUDIT (persuaid_start_pipeline)      │
+│    Only runs when Otterly has no report or fresh sampling   │
+│    is explicitly requested. 18s parallel LLM search audit.  │
+└─────────────────────────────────────────────────────────────┘
+```
 
-When Otterly data is not present or supplementary query sampling is needed:
+#### PATH A: Otterly MCP Pitch Intelligence (Preferred when MCP is connected)
+If Otterly MCP tools (`mcp__otterly__*`) are available in the session:
+1. **Brand Report Discovery**:
+   Call `mcp__otterly__list_brand_reports()` to locate the client's pre-configured report by name or official domain.
+2. **If a Pre-Configured Report Exists**:
+   **DO NOT RUN `persuaid_start_pipeline` or `persuaid_run_pipeline`!** Running a full Apify audit is redundant, slow, and wasteful when Otterly already tracks ground-truth visibility across 7 engines (ChatGPT, Perplexity, Gemini, Claude, Copilot, Google AI Overviews).
+   Instead, actively investigate the brand with semantic curiosity using read-only Otterly MCP tools:
+   - `mcp__otterly__get_brand_report_stats`: Share of Voice %, average rank, and competitor comparison.
+   - `mcp__otterly__get_brand_report_agent_stats`: Server-log crawler traffic (GPTBot, ClaudeBot visits and trends).
+   - `mcp__otterly__list_brand_report_citations`: Stolen citations and high-authority third-party domains out-ranking the brand.
+   - `mcp__otterly__list_brand_report_prompt_ai_responses`: Exact verbatim AI model answers and competitor biases.
+   - `mcp__otterly__list_brand_report_recommendations`: Immediate technical and content remediation tickets.
+3. **Strict Zero-Write Safety Policy**:
+   - **Allowed**: Read-only queries (`list_*`, `get_*`).
+   - **Prohibited**: NEVER call mutation or creation tools (`create_crawlability_check`, `create_content_check`, `create_query_fan_out`, `create_prompts`, `create_tag`, etc.) to prevent accidental quota drain.
+4. **Proceed Directly to Step 2 (Narrative Architecture)**:
+   Synthesize the discovered data directly into the slide storyline and proof points without running unnecessary crawls.
 
-1. **Launch the Cloud Audit (`persuaid_start_pipeline`)**:
-   Call **`persuaid_start_pipeline`** with the brief parameters:
-   ```json
-   {
-     "brand": "<Brand Name>",
-     "domain": "<Official Domain>",
-     "category": "<Product or Service Category>",
-     "competitors": "<Competitor 1, Competitor 2, Competitor 3>",
-     "geo": "<Geographic Market>"
-   }
-   ```
-   *This launches the cloud audit in background worker threads and returns immediately with a `job_id` (<0.2s).*
+#### PATH B: Otterly REST API Intelligence (When OTTERLY_API_KEY is configured)
+If Otterly MCP is not connected, but an Otterly API key is available (`OTTERLY_API_KEY` in environment, `--otterly-key`, or stored in `~/.persuaid/credentials.json`):
+1. Query `engine.otterly_client` (e.g. `python3 -m engine.otterly_client --brand "<Brand>" --domain "<domain>"`).
+2. If a pre-configured report is found, it ingests the 5 Pitch Proof Weapons (`hero_stat`, `smoking_gun`, `competitor_gap`, `citation_matrix`, `retainer_actions`) and skips the full live Apify audit.
 
-2. **Retrieve Completed Metrics (`persuaid_get_pipeline_status`)**:
-   Immediately call **`persuaid_get_pipeline_status`** with the returned `job_id`:
-   ```json
-   {
-     "job_id": "<job_id>"
-   }
-   ```
-   *(The server automatically waits on the background job for ~15–20s and returns the completed data directly in this tool call. You do NOT need to sleep, loop, or schedule wakeups).*
+#### PATH C: PersuAId MCP as Tactical Crawler & Fallback Search Auditor
+PersuAId MCP (`persuaid-mcp`) serves two focused, specialized roles:
 
-   The completed response returns:
-   - **Share of Voice (SoV) %** & **#1 Recommendation Win Rate %**
-   - **5-Stage Funnel Visibility Breakdown** (Discovery, Interest, Consideration, Purchase, After-Purchase)
-   - **Competitor Presence Rates** & **Citation Domain Authority Breakdown**
-   - Inline CSV prompt taxonomy contents (`csv_itemized_content` & `csv_matrix_content`)
+1. **Tactical Stealth Web & Query Crawler**:
+   When competitor domains, client landing pages, or search results **fail to load via conventional web fetch** (due to Cloudflare, bot gates, JavaScript hydration issues, or geo-restrictions), use PersuAId's crawling engine (`persuaid_audit_query`) to bypass protections and extract clean content.
 
-3. **Fallback (Pure Chat Environments Only)**:
-   If no MCP tools are connected to your session, formulate an authentic 5-stage search journey taxonomy and model realistic GEO benchmarks based on category market dynamics.
+2. **Fallback Live Search Auditor (Only when Otterly lacks data)**:
+   **Only execute a full search pipeline if PATH A and PATH B found no pre-configured report**, or if the client explicitly requests fresh live prompt sampling across ChatGPT and Gemini:
+   - **Launch Cloud Audit (`persuaid_start_pipeline`)**:
+     Call with `brand`, `domain`, `category`, and `competitors`. Returns immediately with a `job_id`.
+   - **Retrieve Completed Metrics (`persuaid_get_pipeline_status`)**:
+     Call with `job_id` to receive SoV %, Win Rate %, 5-stage funnel breakdown, and CSV taxonomy.
+
+3. **Presentation Compiler (`persuaid_generate_deck`)**:
+   Compile the 21-slide executive presentation directly via MCP.
+
+#### PATH D: Fallback (Pure Chat Environments Only)
+If no MCP tools are connected to your session, formulate an authentic 5-stage search journey taxonomy and model realistic GEO benchmarks based on category market dynamics.
 
 ---
 
@@ -175,18 +193,20 @@ Export or provide:
 - **`[Brand]_AI_Search_Journey_Matrix.csv`**: Matrix grid mapping query intents across all 5 stages.
 
 #### 3. Native PowerPoint Generation via DeckCraft (`.pptx`)
-Execute the first-principles pure code presentation compiler (`engine.deckcraft`):
-```bash
-python3 -m engine.deckcraft.cli \
-  --brand "<Brand Name>" \
-  --category "<Category>" \
-  --competitors "<Competitor 1, Competitor 2, Competitor 3>" \
-  --domain "<domain.com>" \
-  --metrics "metrics.json" \
-  --out-dir "."
-```
-Or append `--generate-deck` when running `scripts/run_audit_pipeline.py`.
-This generates the full **21-slide Redcomm executive GEO presentation** in True 16:9 widescreen (`20.0" × 11.25"`), rendered in the signature Obsidian Black & Electric Cyan (`#3EC0C0`) aesthetic with 100% editable native OpenXML shapes and editorial media placeholders.
+Generate the complete presentation using either:
+- **MCP Tool (When `persuaid-mcp` is connected)**: Call `persuaid_generate_deck` with `brand`, `category`, `competitors`, and `domain` to compile the presentation in seconds.
+- **Standalone CLI**:
+  ```bash
+  python3 -m engine.deckcraft.cli \
+    --brand "<Brand Name>" \
+    --category "<Category>" \
+    --competitors "<Competitor 1, Competitor 2, Competitor 3>" \
+    --domain "<domain.com>" \
+    --out-dir "."
+  ```
+- **Or `--generate-deck` Flag**: Append `--generate-deck` when executing `scripts/run_audit_pipeline.py`.
+
+This compiles the full **21-slide Redcomm executive GEO presentation** in True 16:9 widescreen (`20.0" × 11.25"`), rendered in the signature Obsidian Black & Electric Cyan (`#3EC0C0`) aesthetic with 100% editable native OpenXML shapes and editorial media placeholders.
 
 
 ---

@@ -93,6 +93,11 @@ TOOLS = [
                     "default": 1,
                     "description": "Number of sample queries to audit per stage (default: 1).",
                 },
+                "generate_deck": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Whether to automatically compile the 21-slide Redcomm executive GEO pitch deck (.pptx).",
+                },
             },
             "required": ["brand", "category", "competitors"],
         },
@@ -151,8 +156,54 @@ TOOLS = [
                     "default": 1,
                     "description": "Number of sample queries per stage (default: 1).",
                 },
+                "generate_deck": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "Whether to automatically compile the 21-slide Redcomm executive GEO pitch deck (.pptx).",
+                },
             },
             "required": ["brand", "category", "competitors"],
+        },
+    },
+    {
+        "name": "persuaid_generate_deck",
+        "description": "Compiles a complete 21-slide Redcomm executive GEO pitch deck (.pptx) using pure code generation from metrics.json or brand parameters.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand": {
+                    "type": "string",
+                    "description": "The client brand name (e.g. 'Auto2000', 'Electrum').",
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Product or service category (e.g. 'authorized Toyota dealer', 'motor listrik').",
+                },
+                "competitors": {
+                    "type": "string",
+                    "default": "Competitor A, Competitor B",
+                    "description": "Comma-separated list of top competitors.",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Official brand website domain (optional).",
+                },
+                "metrics_path": {
+                    "type": "string",
+                    "description": "Optional path to metrics.json or otterly_intel.json from an audit run.",
+                },
+                "out_dir": {
+                    "type": "string",
+                    "default": ".",
+                    "description": "Output directory for the generated .pptx presentation.",
+                },
+                "year": {
+                    "type": "integer",
+                    "default": 2026,
+                    "description": "Target strategy year (default: 2026).",
+                },
+            },
+            "required": ["brand", "category"],
         },
     },
     {
@@ -374,6 +425,7 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
     out_dir = args.get("out_dir", "/tmp/persuaid_runs")
     samples_per_stage = args.get("samples_per_stage", 1)
     reverse_prompt = args.get("reverse_prompt", True)
+    generate_deck = args.get("generate_deck", False)
     brand_slug = brand.strip().replace(" ", "_")
 
     cache_key = _get_cache_key("pipeline", {
@@ -384,6 +436,7 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
         "geo": geo.strip().lower(),
         "platform": platform.strip().lower(),
         "samples_per_stage": samples_per_stage,
+        "generate_deck": generate_deck,
     })
 
     now = time.time()
@@ -421,11 +474,13 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
             reverse_prompt=reverse_prompt,
             samples_per_stage=samples_per_stage,
             provider="auto",
+            generate_deck=generate_deck,
         )
 
         metrics = pipeline_output.get("metrics") if isinstance(pipeline_output, dict) else pipeline_output
         csv_itemized = pipeline_output.get("csv_itemized_content", "") if isinstance(pipeline_output, dict) else ""
         csv_matrix = pipeline_output.get("csv_matrix_content", "") if isinstance(pipeline_output, dict) else ""
+        deck_path = pipeline_output.get("deck_path") if isinstance(pipeline_output, dict) else None
 
         final_res = {
             "status": "success",
@@ -434,6 +489,7 @@ def handle_persuaid_run_pipeline(args: Dict[str, Any]) -> Dict[str, Any]:
             "domain": domain,
             "category": category,
             "metrics": metrics,
+            "deck_path": deck_path,
             "csv_itemized_content": csv_itemized,
             "csv_matrix_content": csv_matrix,
             "itemized_csv_filename": f"{brand_slug}_AI_Search_Journey_Prompts.csv",
@@ -609,6 +665,7 @@ def handle_persuaid_get_pipeline_status(args: Dict[str, Any]) -> Dict[str, Any]:
             "ready": True,
             "duration_seconds": job.get("duration_seconds", elapsed),
             "metrics": res.get("metrics"),
+            "deck_path": res.get("deck_path"),
             "csv_itemized_content": res.get("csv_itemized_content", ""),
             "csv_matrix_content": res.get("csv_matrix_content", ""),
             "itemized_csv_filename": res.get("itemized_csv_filename", ""),
@@ -742,6 +799,43 @@ def handle_persuaid_configure_credentials(args: Dict[str, Any]) -> Dict[str, Any
     }
 
 
+def handle_persuaid_generate_deck(args: Dict[str, Any]) -> Dict[str, Any]:
+    brand = args["brand"]
+    category = args["category"]
+    competitors = args.get("competitors", "Competitor A, Competitor B")
+    domain = args.get("domain")
+    metrics_path = args.get("metrics_path")
+    out_dir = args.get("out_dir", ".")
+    year = int(args.get("year", 2026))
+
+    try:
+        from engine.deckcraft.builder import compile_deck
+        deck_path = compile_deck(
+            brand=brand,
+            category=category,
+            competitors=competitors,
+            domain=domain,
+            metrics_path=metrics_path,
+            out_dir=out_dir,
+            year=year,
+        )
+        return {
+            "status": "success",
+            "brand": brand,
+            "category": category,
+            "deck_path": str(deck_path),
+            "total_slides": 21,
+            "message": f"Successfully compiled 21-slide Redcomm executive GEO pitch deck for {brand} -> {deck_path}",
+        }
+    except Exception as e:
+        logger.exception(f"Failed to compile presentation deck for {brand}: {e}")
+        return {
+            "status": "error",
+            "brand": brand,
+            "error": str(e),
+        }
+
+
 TOOL_HANDLERS = {
     "persuaid_start_pipeline": handle_persuaid_start_pipeline,
     "persuaid_get_pipeline_status": handle_persuaid_get_pipeline_status,
@@ -750,6 +844,7 @@ TOOL_HANDLERS = {
     "persuaid_format_queries": handle_persuaid_format_queries,
     "persuaid_aggregate_metrics": handle_persuaid_aggregate_metrics,
     "persuaid_configure_credentials": handle_persuaid_configure_credentials,
+    "persuaid_generate_deck": handle_persuaid_generate_deck,
 }
 
 

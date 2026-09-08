@@ -56,6 +56,22 @@ class TestDeckCraft(unittest.TestCase):
             prs = Presentation(str(out_file))
             self.assertEqual(len(prs.slides), 21)
 
+    def test_mcp_handle_persuaid_generate_deck(self):
+        from engine.mcp_server import handle_persuaid_generate_deck
+        with tempfile.TemporaryDirectory() as tmpdir:
+            res = handle_persuaid_generate_deck({
+                "brand": "Auto2000",
+                "category": "authorized Toyota dealer",
+                "competitors": "Plaza Toyota, Astrido Toyota, Tunas Toyota",
+                "domain": "auto2000.co.id",
+                "out_dir": tmpdir,
+            })
+            self.assertEqual(res["status"], "success")
+            self.assertEqual(res["total_slides"], 21)
+            self.assertTrue(Path(res["deck_path"]).exists())
+            prs = Presentation(res["deck_path"])
+            self.assertEqual(len(prs.slides), 21)
+
 
 if __name__ == "__main__":
     unittest.main()
