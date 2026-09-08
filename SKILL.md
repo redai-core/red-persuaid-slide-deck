@@ -65,6 +65,11 @@ When initiating a new presentation or audit (e.g., `/persuaid create GEO audit f
 2. **Category & Geography**: Core medical/business service lines and target geographic scope (e.g., `Healthcare Network & Specialized Centers in Indonesia`).
 3. **Competitors**: Top 3–5 benchmark competitors (e.g., `Mayapada Hospital, RS Pondok Indah, Mitra Keluarga, RS Premier`).
 4. **Target Audience & Core USPs**: Key patient/buyer persona, major decision friction, and brand strengths.
+5. **Presentation Template & Visual DNA (MANDATORY)**:
+   Always ask the user:
+   > *"Do you have a custom `.pptx` presentation template you want to follow (e.g., an uploaded file or path to your company/agency deck), or should we use the default Redcomm 16:9 Dark Executive presentation style?"*
+   - If the user provides a custom `.pptx`: The agent decompiles its visual DNA (unit-space geometry, palette, fonts, recurring chrome, layout archetypes) and follows its design tokens.
+   - If the user selects the default or has none: Use the signature Redcomm 16:9 Dark Executive layout (`20.0" × 11.25"`, Obsidian Black `#000000` and Electric Cyan `#3EC0C0`).
 
 *Note: In environments supporting interactive question tools (such as `AskUserQuestion`), present these as clean, structured choices with pre-filled recommendations.*
 
@@ -193,21 +198,27 @@ Export or provide:
 - **`[Brand]_AI_Search_Journey_Prompts.csv`**: Itemized list of consumer queries categorized by engine and stage.
 - **`[Brand]_AI_Search_Journey_Matrix.csv`**: Matrix grid mapping query intents across all 5 stages.
 
-#### 3. Native PowerPoint Generation via DeckCraft (`.pptx`)
-Generate the complete presentation using either:
-- **MCP Tool (When `persuaid-mcp` is connected)**: Call `persuaid_generate_deck` with `brand`, `category`, `competitors`, and `domain` to compile the presentation in seconds.
-- **Standalone CLI**:
-  ```bash
-  python3 -m engine.deckcraft.cli \
-    --brand "<Brand Name>" \
-    --category "<Category>" \
-    --competitors "<Competitor 1, Competitor 2, Competitor 3>" \
-    --domain "<domain.com>" \
-    --out-dir "."
-  ```
-- **Or `--generate-deck` Flag**: Append `--generate-deck` when executing `scripts/run_audit_pipeline.py`.
+#### 3. Native PowerPoint Generation (`.pptx`)
+Generate the presentation based on the chosen path from Step 1:
 
-This compiles the full **21-slide Redcomm executive GEO presentation** in True 16:9 widescreen (`20.0" × 11.25"`), rendered in the signature Obsidian Black & Electric Cyan (`#3EC0C0`) aesthetic with 100% editable native OpenXML shapes and editorial media placeholders.
+- **Path A: Custom PPTX Template**:
+  When a custom template `.pptx` is provided, decompile its design tokens and layout archetypes, matching its unit-space geometry, palette, and typography with 95%+ fidelity while keeping editorial media placeholders. Stage slides act-by-act with character budget validation before final compilation.
+
+- **Path B: Default Redcomm 16:9 Dark Executive Style**:
+  Generate the complete executive presentation using either:
+  - **MCP Tool (When `persuaid-mcp` is connected)**: Call `persuaid_generate_deck` with `brand`, `category`, `competitors`, and `domain` to compile the presentation in seconds.
+  - **Standalone CLI**:
+    ```bash
+    python3 -m engine.deckcraft.cli \
+      --brand "<Brand Name>" \
+      --category "<Category>" \
+      --competitors "<Competitor 1, Competitor 2, Competitor 3>" \
+      --domain "<domain.com>" \
+      --out-dir "."
+    ```
+  - **Or `--generate-deck` Flag**: Append `--generate-deck` when executing `scripts/run_audit_pipeline.py`.
+
+  This compiles the full **21-slide Redcomm executive GEO presentation** in True 16:9 widescreen (`20.0" × 11.25"`), rendered in the signature Obsidian Black & Electric Cyan (`#3EC0C0`) aesthetic with 100% editable native OpenXML shapes and editorial media placeholders.
 
 
 ---
