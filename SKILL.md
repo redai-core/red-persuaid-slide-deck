@@ -201,11 +201,21 @@ Export or provide:
 #### 3. Native PowerPoint Generation (`.pptx`)
 Generate the presentation based on the chosen path from Step 1:
 
-- **Path A: Custom PPTX Template**:
-  When a custom template `.pptx` is provided, decompile its design tokens and layout archetypes, matching its unit-space geometry, palette, and typography with 95%+ fidelity while keeping editorial media placeholders. Stage slides act-by-act with character budget validation before final compilation.
+- **Path A: Universal Template & Progressive Act-by-Act Staging (Custom PPTX or Dynamic Count)**:
+  When the user provides a custom `.pptx` template or wants dynamic slide counts, use the progressive disclosure workflow:
+  1. **Learn Template**: Call `persuaid_learn_template(template_path="...")` to decompile geometry, palette, and extract the ~300-token Archetype Menu. (If using default Redcomm theme, pass `template_id_or_path="default"` in step 2).
+  2. **Initialize Workspace Session**: Call `persuaid_init_session(brand="...", category="...", total_slides=N)`.
+  3. **Stage Act-by-Act (Acts I through IV)**:
+     For each act (e.g. `Act I`, `Act II`, `Act III`, `Act IV`):
+     - Query `persuaid_get_archetypes(session_id="...", act="Act I")` to get compact slot schemas and character limits (~200 tokens).
+     - Submit consulting copy via `persuaid_stage_act(session_id="...", act="Act I", slides=[...])`.
+     - The server validates text against physical container geometry immediately, catching character overflows on that single act.
+  4. **Compile Deck**: Call `persuaid_compile_session(session_id="...")`. Returns the final native `.pptx` path compiled in 50ms with 95%+ visual fidelity.
+  
+  *CRITICAL ANTI-SURGERY RULE*: The agent must **NEVER** manually unzip `.pptx` files, parse raw OpenXML in bash, write ad-hoc Python regex (`re.sub`), or tweak XML coordinates slide-by-slide. Always invoke the deterministic MCP tools.
 
-- **Path B: Default Redcomm 16:9 Dark Executive Style**:
-  Generate the complete executive presentation using either:
+- **Path B: Default 21-Slide Redcomm Masterwork (Single-Shot Compilation)**:
+  Generate the complete 21-slide executive presentation using either:
   - **MCP Tool (When `persuaid-mcp` is connected)**: Call `persuaid_generate_deck` with `brand`, `category`, `competitors`, and `domain` to compile the presentation in seconds.
   - **Standalone CLI**:
     ```bash

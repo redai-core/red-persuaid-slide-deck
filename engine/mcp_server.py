@@ -306,6 +306,133 @@ TOOLS = [
             },
         },
     },
+    {
+        "name": "persuaid_learn_template",
+        "description": "Decompiles any user-uploaded PowerPoint presentation (.pptx), extracts its unit-space physical geometry [0.0, 1.0], color palette tokens, typography scale, recurring chrome, and layout archetypes, returning a compact ~300-token Archetype Menu for presentation staging.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "template_path": {
+                    "type": "string",
+                    "description": "Local filesystem path to the user-uploaded reference .pptx file.",
+                },
+                "template_id": {
+                    "type": "string",
+                    "description": "Optional custom identifier for the learned template.",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Optional human-readable name for the template.",
+                },
+            },
+            "required": ["template_path"],
+        },
+    },
+    {
+        "name": "persuaid_init_session",
+        "description": "Initializes an interactive Act-by-Act presentation staging workspace with target brand parameters, total slide count, and template profile.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand": {
+                    "type": "string",
+                    "description": "The client brand name (e.g. 'Auto2000', 'Siloam Hospitals').",
+                },
+                "category": {
+                    "type": "string",
+                    "description": "Product or service category (e.g. 'authorized Toyota dealer & service network').",
+                },
+                "template_id_or_path": {
+                    "type": "string",
+                    "description": "Optional template ID, custom profile JSON path, or reference .pptx path. Defaults to Redcomm Executive theme.",
+                },
+                "competitors": {
+                    "type": "string",
+                    "default": "Competitor A, Competitor B",
+                    "description": "Comma-separated list of top competitors.",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Official brand website domain.",
+                },
+                "total_slides": {
+                    "type": "integer",
+                    "default": 21,
+                    "description": "Target total presentation slide count (e.g. 8, 12, 16, 21).",
+                },
+            },
+            "required": ["brand", "category"],
+        },
+    },
+    {
+        "name": "persuaid_get_archetypes",
+        "description": "Retrieves lightweight slot schemas (~200 tokens) and character budget constraints for slide archetypes recommended for a specific consulting Act (e.g. 'Act I', 'Act II').",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": {
+                    "type": "string",
+                    "description": "The active staging session ID returned by persuaid_init_session.",
+                },
+                "act": {
+                    "type": "string",
+                    "description": "The consulting act name (e.g. 'Act I', 'Act II', 'Act III', 'Act IV').",
+                },
+            },
+            "required": ["session_id", "act"],
+        },
+    },
+    {
+        "name": "persuaid_stage_act",
+        "description": "Stages 3 to 5 slides grouped by consulting Act into the active session. Immediately validates text against physical container character limits to prevent visual text overflow.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": {
+                    "type": "string",
+                    "description": "The active staging session ID.",
+                },
+                "act": {
+                    "type": "string",
+                    "description": "The consulting act name (e.g. 'Act I', 'Act II', 'Act III', 'Act IV').",
+                },
+                "slides": {
+                    "type": "array",
+                    "description": "List of slide specifications to stage, each containing slide_number, archetype_id, and slots dictionary.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "slide_number": {"type": "integer"},
+                            "archetype_id": {"type": "string"},
+                            "slots": {"type": "object"},
+                            "notes": {"type": "string"},
+                        },
+                        "required": ["slide_number", "archetype_id", "slots"],
+                    },
+                },
+            },
+            "required": ["session_id", "act", "slides"],
+        },
+    },
+    {
+        "name": "persuaid_compile_session",
+        "description": "Compiles all staged slides in the session into a native, fully editable OpenXML PowerPoint presentation (.pptx) adhering to the learned visual template tokens and geometry.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "session_id": {
+                    "type": "string",
+                    "description": "The active staging session ID.",
+                },
+                "out_dir": {
+                    "type": "string",
+                    "default": ".",
+                    "description": "Output directory for the compiled .pptx presentation.",
+                },
+            },
+            "required": ["session_id"],
+        },
+    },
 ]
 
 
@@ -836,6 +963,118 @@ def handle_persuaid_generate_deck(args: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 
+def handle_persuaid_learn_template(args: Dict[str, Any]) -> Dict[str, Any]:
+    template_path = args["template_path"]
+    template_id = args.get("template_id")
+    name = args.get("name")
+
+    try:
+        from engine.template_decompiler import TemplateDecompiler
+        decompiler = TemplateDecompiler(template_path)
+        profile = decompiler.decompile(template_id=template_id, name=name)
+
+        return {
+            "status": "success",
+            "template_id": profile.template_id,
+            "name": profile.name,
+            "canvas": {
+                "width_inches": profile.canvas.width_inches,
+                "height_inches": profile.canvas.height_inches,
+                "aspect_ratio": profile.canvas.aspect_ratio,
+            },
+            "palette": {
+                "background": profile.palette.background,
+                "accent_primary": profile.palette.accent_primary,
+                "container_primary": profile.palette.container_primary,
+            },
+            "total_archetypes": len(profile.archetypes),
+            "archetype_menu": profile.get_archetype_menu(),
+            "message": f"Successfully decompiled template '{profile.name}'. Call persuaid_init_session to start staging slides.",
+        }
+    except Exception as e:
+        logger.exception(f"Failed to learn template from {template_path}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
+
+def handle_persuaid_init_session(args: Dict[str, Any]) -> Dict[str, Any]:
+    brand = args["brand"]
+    category = args["category"]
+    template_id_or_path = args.get("template_id_or_path")
+    competitors = args.get("competitors", "Competitor A, Competitor B")
+    domain = args.get("domain")
+    total_slides = int(args.get("total_slides", 21))
+
+    try:
+        from engine.staging_manager import DeckStagingManager
+        mgr = DeckStagingManager()
+        return mgr.create_session(
+            brand=brand,
+            category=category,
+            template_id_or_path=template_id_or_path,
+            competitors=competitors,
+            domain=domain,
+            total_slides=total_slides,
+        )
+    except Exception as e:
+        logger.exception(f"Failed to init staging session for {brand}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
+
+def handle_persuaid_get_archetypes(args: Dict[str, Any]) -> Dict[str, Any]:
+    session_id = args["session_id"]
+    act = args["act"]
+
+    try:
+        from engine.staging_manager import DeckStagingManager
+        mgr = DeckStagingManager()
+        return mgr.get_archetypes_for_act(session_id=session_id, act=act)
+    except Exception as e:
+        logger.exception(f"Failed to get archetypes for session {session_id}, act {act}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
+
+def handle_persuaid_stage_act(args: Dict[str, Any]) -> Dict[str, Any]:
+    session_id = args["session_id"]
+    act = args["act"]
+    slides = args["slides"]
+
+    try:
+        from engine.staging_manager import DeckStagingManager
+        mgr = DeckStagingManager()
+        return mgr.stage_act(session_id=session_id, act=act, slides=slides)
+    except Exception as e:
+        logger.exception(f"Failed to stage act {act} for session {session_id}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
+
+def handle_persuaid_compile_session(args: Dict[str, Any]) -> Dict[str, Any]:
+    session_id = args["session_id"]
+    out_dir = args.get("out_dir", ".")
+
+    try:
+        from engine.universal_compiler import UniversalDeckCompiler
+        compiler = UniversalDeckCompiler()
+        return compiler.compile_session(session_id=session_id, out_dir=out_dir)
+    except Exception as e:
+        logger.exception(f"Failed to compile session {session_id}: {e}")
+        return {
+            "status": "error",
+            "error": str(e),
+        }
+
+
 TOOL_HANDLERS = {
     "persuaid_start_pipeline": handle_persuaid_start_pipeline,
     "persuaid_get_pipeline_status": handle_persuaid_get_pipeline_status,
@@ -845,6 +1084,11 @@ TOOL_HANDLERS = {
     "persuaid_aggregate_metrics": handle_persuaid_aggregate_metrics,
     "persuaid_configure_credentials": handle_persuaid_configure_credentials,
     "persuaid_generate_deck": handle_persuaid_generate_deck,
+    "persuaid_learn_template": handle_persuaid_learn_template,
+    "persuaid_init_session": handle_persuaid_init_session,
+    "persuaid_get_archetypes": handle_persuaid_get_archetypes,
+    "persuaid_stage_act": handle_persuaid_stage_act,
+    "persuaid_compile_session": handle_persuaid_compile_session,
 }
 
 
