@@ -15,7 +15,7 @@ import pptx
 from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
-from pptx.enum.text import PP_ALIGN
+from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
@@ -469,7 +469,7 @@ class UniversalDeckCompiler:
         W = template.canvas.width_inches
         H = template.canvas.height_inches
 
-        # Left Container (Bar Chart Container)
+        # Left Container (Bar Chart Container with visual benchmark bars)
         c_left = slide.shapes.add_shape(
             MSO_SHAPE.ROUNDED_RECTANGLE,
             Inches(template.canvas.content_x * W),
@@ -480,6 +480,32 @@ class UniversalDeckCompiler:
         c_left.fill.solid()
         c_left.fill.fore_color.rgb = _hex_to_rgb(template.palette.container_secondary)
         c_left.line.color.rgb = _hex_to_rgb(template.palette.border_stroke)
+
+        ltf = c_left.text_frame
+        ltf.word_wrap = True
+        ltf.margin_left = ltf.margin_right = Inches(0.25)
+        ltf.margin_top = Inches(0.2)
+
+        lp_h = ltf.paragraphs[0]
+        lp_h.text = "CATEGORY AI SHARE OF VOICE & CITATION GAP"
+        lp_h.font.bold = True
+        lp_h.font.size = Pt(15)
+        lp_h.font.color.rgb = _hex_to_rgb(template.palette.accent_primary)
+
+        # Draw benchmark bar representations
+        benchmarks = [
+            (brand, slots.get("client_sov", "22.4%"), "95% consensus mentions", template.palette.accent_primary),
+            (slots.get("comp1_name", "Mobil88"), slots.get("comp1_sov", "18.4%"), "Leading high-intent citations", "8BA8C8"),
+            (slots.get("comp2_name", "Carmudi"), slots.get("comp2_sov", "14.2%"), "Spec pages & pricing consensus", "8BA8C8"),
+            (slots.get("comp3_name", "Carsome"), slots.get("comp3_sov", "9.8%"), "Certified inspection focus", "8BA8C8"),
+        ]
+
+        for b_name, b_val, b_desc, b_color in benchmarks:
+            bp = ltf.add_paragraph()
+            bp.text = f"■ {b_name}: {b_val} — {b_desc}"
+            bp.font.size = Pt(13)
+            bp.font.color.rgb = _hex_to_rgb(b_color)
+            bp.space_before = Pt(8)
 
         # Right Container (Driver Cards)
         c_right = slide.shapes.add_shape(
@@ -532,15 +558,15 @@ class UniversalDeckCompiler:
         H = template.canvas.height_inches
 
         cols = [
-            ("col1_title", "col1_bullets", template.canvas.content_x),
-            ("col2_title", "col2_bullets", 0.515),
+            ("col1_title", "col1_body", "col1_bullets", template.canvas.content_x),
+            ("col2_title", "col2_body", "col2_bullets", 0.515),
         ]
 
-        for title_k, bullets_k, col_x in cols:
+        for title_k, body_k, bullets_k, col_x in cols:
             box = slide.shapes.add_shape(
                 MSO_SHAPE.ROUNDED_RECTANGLE,
                 Inches(col_x * W),
-                Inches(0.22 * H),
+                Inches(0.20 * H),
                 Inches(0.43 * W),
                 Inches(0.50 * H),
             )
@@ -550,8 +576,10 @@ class UniversalDeckCompiler:
 
             tf = box.text_frame
             tf.word_wrap = True
-            tf.margin_left = tf.margin_right = Inches(0.3)
-            tf.margin_top = Inches(0.3)
+            tf.vertical_anchor = MSO_ANCHOR.TOP
+            tf.margin_left = tf.margin_right = Inches(0.4)
+            tf.margin_top = Inches(0.4)
+            tf.margin_bottom = Inches(0.4)
 
             p_t = tf.paragraphs[0]
             p_t.text = str(slots.get(title_k, "Dimension"))
@@ -559,13 +587,17 @@ class UniversalDeckCompiler:
             p_t.font.size = Pt(22)
             p_t.font.color.rgb = _hex_to_rgb(template.palette.accent_primary)
 
-            p_b = tf.add_paragraph()
-            p_b.text = str(slots.get(bullets_k, ""))
-            p_b.font.size = Pt(15)
-            p_b.font.color.rgb = _hex_to_rgb(template.palette.text_secondary)
-            p_b.space_before = Pt(12)
+            body_content = str(slots.get(body_k) or slots.get(bullets_k) or "")
+            if body_content:
+                lines = [line.strip() for line in body_content.split("\n") if line.strip()]
+                for line in lines:
+                    p_b = tf.add_paragraph()
+                    p_b.text = line
+                    p_b.font.size = Pt(18)
+                    p_b.font.color.rgb = _hex_to_rgb(template.palette.text_secondary)
+                    p_b.space_before = Pt(14)
 
-        self._add_takeaway_banner(slide, template, slots.get("takeaway_banner", ""))
+        self._add_takeaway_banner(slide, template, slots.get("takeaway_banner", ""), banner_y=0.73, banner_h=0.14)
 
     def _render_voice_grid(
         self,
@@ -601,14 +633,18 @@ class UniversalDeckCompiler:
             tf.margin_left = tf.margin_right = Inches(0.2)
             tf.margin_top = Inches(0.15)
 
+            # Resolve prompt and quote with fallback to theme keys
+            prompt_val = slots.get(p_key) or slots.get(f"theme{quotes.index((p_key, t_key, qx, qy))+1}_title") or "Search intent"
+            quote_val = slots.get(t_key) or slots.get(f"theme{quotes.index((p_key, t_key, qx, qy))+1}_body") or "AI recommendation analysis"
+
             p_prompt = tf.paragraphs[0]
-            p_prompt.text = f"PROMPT: “{slots.get(p_key, 'Search intent')}”"
+            p_prompt.text = f"FOCUS: {prompt_val}"
             p_prompt.font.bold = True
             p_prompt.font.size = Pt(12)
             p_prompt.font.color.rgb = _hex_to_rgb(template.palette.accent_secondary)
 
             p_quote = tf.add_paragraph()
-            p_quote.text = f"“{slots.get(t_key, 'Verbatim AI recommendation...')}”"
+            p_quote.text = f"“{quote_val}”"
             p_quote.font.size = Pt(14)
             p_quote.font.color.rgb = _hex_to_rgb(template.palette.text_dark)
             p_quote.space_before = Pt(6)
@@ -809,33 +845,47 @@ class UniversalDeckCompiler:
         W = template.canvas.width_inches
         H = template.canvas.height_inches
 
-        tb = slide.shapes.add_textbox(
-            Inches(0.08 * W),
-            Inches(0.30 * H),
-            Inches(0.84 * W),
-            Inches(0.45 * H),
+        card = slide.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE,
+            Inches(template.canvas.content_x * W),
+            Inches(0.20 * H),
+            Inches(template.canvas.content_w * W),
+            Inches(0.66 * H),
         )
-        tf = tb.text_frame
+        card.fill.solid()
+        card.fill.fore_color.rgb = _hex_to_rgb(template.palette.container_primary)
+        card.line.color.rgb = _hex_to_rgb(template.palette.accent_primary)
+
+        tf = card.text_frame
         tf.word_wrap = True
+        tf.margin_left = tf.margin_right = Inches(0.5)
+        tf.margin_top = Inches(0.5)
 
         p1 = tf.paragraphs[0]
-        p1.text = "THE MANDATE FOR 2026"
+        p1.text = str(slots.get("kicker", "THE MANDATE FOR 2026")).upper()
         p1.font.bold = True
-        p1.font.size = Pt(18)
+        p1.font.size = Pt(16)
         p1.font.color.rgb = _hex_to_rgb(template.palette.accent_primary)
 
         p2 = tf.add_paragraph()
-        p2.text = str(slots.get("closing_headline", f"YOUR BRAND DESERVES TO BE THE AI'S FIRST ANSWER."))
+        p2.text = str(slots.get("closing_headline", f"{brand.upper()} DESERVES TO BE THE AI'S FIRST ANSWER."))
         p2.font.bold = True
-        p2.font.size = Pt(48)
+        p2.font.size = Pt(36)
         p2.font.color.rgb = _hex_to_rgb(template.palette.text_primary)
-        p2.space_before = Pt(12)
+        p2.space_before = Pt(16)
 
         p3 = tf.add_paragraph()
-        p3.text = str(slots.get("closing_subtext", "Let's execute the 30-day quick wins sprint together."))
-        p3.font.size = Pt(22)
-        p3.font.color.rgb = _hex_to_rgb(template.palette.text_muted)
-        p3.space_before = Pt(12)
+        p3.text = str(slots.get("closing_subtext", "Let's turn AI search visibility into verified showroom footfall and digital inquiries."))
+        p3.font.size = Pt(20)
+        p3.font.color.rgb = _hex_to_rgb(template.palette.text_secondary)
+        p3.space_before = Pt(14)
+
+        if "contact_info" in slots:
+            p4 = tf.add_paragraph()
+            p4.text = f"Engagement Lead: {slots.get('contact_info')}"
+            p4.font.size = Pt(14)
+            p4.font.color.rgb = _hex_to_rgb(template.palette.accent_secondary)
+            p4.space_before = Pt(20)
 
     def _render_generic_archetype(
         self,
@@ -875,6 +925,8 @@ class UniversalDeckCompiler:
         slide: Any,
         template: TemplateProfile,
         text: str,
+        banner_y: float = 0.74,
+        banner_h: float = 0.14,
     ) -> None:
         if not text:
             return
@@ -884,9 +936,9 @@ class UniversalDeckCompiler:
         banner = slide.shapes.add_shape(
             MSO_SHAPE.ROUNDED_RECTANGLE,
             Inches(template.canvas.content_x * W),
-            Inches(0.74 * H),
+            Inches(banner_y * H),
             Inches(template.canvas.content_w * W),
-            Inches(0.14 * H),
+            Inches(banner_h * H),
         )
         banner.fill.solid()
         banner.fill.fore_color.rgb = _hex_to_rgb(template.palette.accent_primary)
