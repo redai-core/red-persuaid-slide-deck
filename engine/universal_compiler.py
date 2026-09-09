@@ -142,19 +142,39 @@ class UniversalDeckCompiler:
             prs.slide_width = Inches(template.canvas.width_inches)
             prs.slide_height = Inches(template.canvas.height_inches)
 
+        # Check if we are hydrating an uploaded custom presentation
+        is_custom_source = bool(source_file and Path(source_file).exists())
+        template_slides_count = len(prs.slides) if is_custom_source else 0
+
         blank_layout = prs.slide_layouts[6] if len(prs.slide_layouts) > 6 else prs.slide_layouts[0]
 
         brand = session.get("brand", "Executive")
         slides_dict = session.get("slides", {})
         sorted_slide_keys = sorted(slides_dict.keys(), key=lambda k: int(k))
 
-        for key in sorted_slide_keys:
+        used_template_indices = set()
+
+        for idx, key in enumerate(sorted_slide_keys):
             slide_data = slides_dict[key]
             slide_no = slide_data.get("slide_number", int(key))
             arch_id = slide_data.get("archetype_id", "ARCH-HERO-STAT")
             slots = slide_data.get("slots", {})
-
             arch = template.archetypes.get(arch_id)
+
+            # If this is a custom slide layout (e.g. ARCH-SLIDE-1, ARCH-SLIDE-2) and exists in template
+            if is_custom_source and arch_id.startswith("ARCH-SLIDE-"):
+                try:
+                    src_slide_idx = int(arch_id.split("-")[-1]) - 1
+                except ValueError:
+                    src_slide_idx = idx
+
+                if 0 <= src_slide_idx < template_slides_count:
+                    target_slide = prs.slides[src_slide_idx]
+                    used_template_indices.add(src_slide_idx)
+                    self._hydrate_template_slide_inplace(target_slide, arch, slots)
+                    continue
+
+            # Otherwise, render fresh slide on canvas (standard Redcomm consulting archetypes)
             slide = prs.slides.add_slide(blank_layout)
 
             # 1. Background Fill
@@ -184,6 +204,16 @@ class UniversalDeckCompiler:
                 self._render_closer(slide, template, brand, slots)
             else:
                 self._render_generic_archetype(slide, template, arch, slots)
+
+        # In custom template mode, remove unused original template slides
+        if is_custom_source and used_template_indices:
+            all_slide_ids = list(prs.slides._sldIdLst)
+            for s_idx, sld_elem in enumerate(all_slide_ids):
+                if s_idx not in used_template_indices:
+                    try:
+                        prs.slides._sldIdLst.remove(sld_elem)
+                    except Exception:
+                        pass
 
         out_path = Path(out_dir)
         try:
@@ -221,6 +251,29 @@ class UniversalDeckCompiler:
             "deck_base64": deck_base64,
             "message": f"Successfully compiled {len(sorted_slide_keys)}-slide native PPTX deck for {brand} -> {dest_file} ({file_size_kb} KB). Base64 presentation payload included in 'deck_base64' for direct client workspace writing.",
         }
+
+    def _hydrate_template_slide_inplace(
+        self,
+        slide: Any,
+        arch: Optional[ArchetypeSpec],
+        slots: Dict[str, Any],
+    ) -> None:
+        """Fills an existing template slide's text shapes in-place using _set_textframe."""
+        text_shapes = [s for s in slide.shapes if s.has_text_frame]
+
+        # Map slot keys to shapes
+        for s_idx, shape in enumerate(text_shapes, start=1):
+            slot_key = f"slot_{s_idx}"
+            val = slots.get(slot_key)
+
+            # Check semantic mappings for headline or kicker
+            if val is None and s_idx == 1 and "headline" in slots:
+                val = slots.get("headline")
+            elif val is None and s_idx == 2 and "kicker" in slots:
+                val = slots.get("kicker")
+
+            if val is not None and str(val).strip():
+                _set_textframe(shape.text_frame, str(val))
 
     def _set_background(self, slide: Any, hex_color: str) -> None:
         bg = slide.background
