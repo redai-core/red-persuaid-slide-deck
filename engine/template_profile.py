@@ -23,16 +23,16 @@ class CanvasSpec:
 
 @dataclass
 class PaletteTokens:
-    background: str = "000000"          # Obsidian Black
-    container_primary: str = "031E45"   # Midnight Navy
-    container_secondary: str = "0D1117" # Dark Slate
-    border_stroke: str = "1A2F4A"       # Subtle Navy Border
-    accent_primary: str = "3EC0C0"      # Electric Cyan
-    accent_secondary: str = "38A6A6"    # Deep Teal
-    text_primary: str = "FFFFFF"        # Pure White
-    text_secondary: str = "E8EEF4"      # Soft Gray
-    text_muted: str = "8BA8C8"          # Slate Muted
-    text_dark: str = "031E45"           # Dark text on bright accent callouts
+    background: str = "000000"          # Dominant slide canvas background
+    container_primary: str = "141B24"   # Primary card/box container fill
+    container_secondary: str = "0D1117" # Secondary/nested container fill
+    border_stroke: str = "3EC0C0"       # Container border stroke color
+    accent_primary: str = "3EC0C0"      # Brand highlight / primary metric accent
+    accent_secondary: str = "38A6A6"    # Secondary accent / subtitle tint
+    text_primary: str = "FFFFFF"        # Main headlines & primary card labels
+    text_secondary: str = "E8EEF4"      # Body text & descriptive copy
+    text_muted: str = "8BA8C8"          # Secondary microcopy & subdued text
+    text_dark: str = "031E45"           # Contrast text against light/cyan surfaces
 
 
 @dataclass
@@ -43,7 +43,7 @@ class TypographyScale:
     size_cover_title: int = 56
     size_section_title: int = 48
     size_action_headline: int = 28
-    size_card_header: int = 18
+    size_card_header: int = 16
     size_body: int = 15
     size_kicker: int = 13
     size_micro: int = 11
@@ -56,6 +56,7 @@ class ChromeSpec:
     has_footer_disclaimer: bool = True
     has_brand_mark: bool = True
     disclaimer_text: str = "Confidential | Redcomm Strategy & Executive Advisory"
+    disclaimer_color: str = "FFFFFF"
     footer_y: float = 0.924  # 10.4" / 11.25"
 
 

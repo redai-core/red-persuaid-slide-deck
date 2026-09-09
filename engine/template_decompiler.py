@@ -125,49 +125,71 @@ class TemplateDecompiler:
 
     def _extract_palette(self) -> PaletteTokens:
         """Analyzes color frequency across all slides to infer palette roles."""
-        fills = collections.Counter()
+        bg_fills = collections.Counter()
+        shape_fills = collections.Counter()
         text_colors = collections.Counter()
         strokes = collections.Counter()
+
+        def scan_shapes(shapes_iter):
+            for shape in shapes_iter:
+                if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                    scan_shapes(shape.shapes)
+                else:
+                    f = _extract_shape_fill(shape)
+                    if f:
+                        shape_fills[f] += 1
+                    s = _extract_line_color(shape)
+                    if s:
+                        strokes[s] += 1
+
+                    if shape.has_text_frame:
+                        for p in shape.text_frame.paragraphs:
+                            for run in p.runs:
+                                try:
+                                    if run.font and run.font.color and run.font.color.rgb:
+                                        text_colors[_rgb_to_hex(run.font.color.rgb)] += 1
+                                except Exception:
+                                    pass
 
         for slide in self.prs.slides:
             # Check slide background
             try:
                 bg = slide.background
                 if bg and bg.fill and bg.fill.type == 1:
-                    fills[_rgb_to_hex(bg.fill.fore_color.rgb)] += 10
+                    bg_fills[_rgb_to_hex(bg.fill.fore_color.rgb)] += 1
             except Exception:
                 pass
 
-            for shape in slide.shapes:
-                f = _extract_shape_fill(shape)
-                if f:
-                    fills[f] += 1
-                s = _extract_line_color(shape)
-                if s:
-                    strokes[s] += 1
+            scan_shapes(slide.shapes)
 
-                if shape.has_text_frame:
-                    for p in shape.text_frame.paragraphs:
-                        for run in p.runs:
-                            try:
-                                if run.font and run.font.color and run.font.color.rgb:
-                                    text_colors[_rgb_to_hex(run.font.color.rgb)] += 1
-                            except Exception:
-                                pass
-
-        top_fills = [c for c, _ in fills.most_common(10)]
+        top_bg = [c for c, _ in bg_fills.most_common(3)]
+        top_shapes = [c for c, _ in shape_fills.most_common(10)]
         top_text = [c for c, _ in text_colors.most_common(10)]
         top_strokes = [c for c, _ in strokes.most_common(5)]
 
-        bg_color = top_fills[0] if top_fills else "000000"
-        container_primary = top_fills[1] if len(top_fills) > 1 else "031E45"
-        container_secondary = top_fills[2] if len(top_fills) > 2 else "0D1117"
-        border_stroke = top_strokes[0] if top_strokes else "1A2F4A"
+        # Background color: dominant slide background fill or fallback to darkest shape
+        bg_color = top_bg[0] if top_bg else ("000000" if "000000" in top_shapes else "FFFFFF")
 
-        # Accent detection: look for high-saturation color differing from dark backgrounds
-        accent = "3EC0C0"
-        for c in top_fills + [c for c, _ in fills.most_common()]:
-            if c not in ["000000", "031E45", "0D1117", "FFFFFF"]:
+        # Container card fill: most common non-white, non-background shape fill
+        container_primary = "141B24"
+        for c in top_shapes:
+            if c != bg_color and c != "FFFFFF":
+                container_primary = c
+                break
+
+        container_secondary = "0D1117"
+        for c in top_shapes:
+            if c not in [bg_color, container_primary, "FFFFFF"]:
+                container_secondary = c
+                break
+
+        # Border stroke: most common stroke color distinct from background
+        border_stroke = top_strokes[0] if top_strokes else "3EC0C0"
+
+        # Accent detection: look for high-saturation color differing from dark backgrounds and white
+        accent = border_stroke
+        for c in top_strokes + top_shapes:
+            if c not in [bg_color, container_primary, container_secondary, "FFFFFF", "000000"]:
                 accent = c
                 break
 
@@ -230,8 +252,9 @@ class TemplateDecompiler:
         )
 
     def _extract_chrome(self) -> ChromeSpec:
-        """Detects recurring footer disclaimer text and positions across slides."""
+        """Detects recurring footer disclaimer text, color, and positions across slides."""
         disclaimers = collections.Counter()
+        footer_colors = collections.Counter()
         footer_ys = []
 
         for slide in self.prs.slides:
@@ -243,8 +266,15 @@ class TemplateDecompiler:
                         if text and len(text) > 5:
                             disclaimers[text] += 1
                             footer_ys.append(norm_y)
+                            try:
+                                p0 = shape.text_frame.paragraphs[0]
+                                if p0.runs and p0.runs[0].font.color and p0.runs[0].font.color.rgb:
+                                    footer_colors[_rgb_to_hex(p0.runs[0].font.color.rgb)] += 1
+                            except Exception:
+                                pass
 
         common_text = disclaimers.most_common(1)[0][0] if disclaimers else "Confidential | Strategy & Advisory"
+        common_color = footer_colors.most_common(1)[0][0] if footer_colors else "FFFFFF"
         avg_y = sum(footer_ys) / len(footer_ys) if footer_ys else 0.924
 
         return ChromeSpec(
@@ -252,6 +282,7 @@ class TemplateDecompiler:
             has_footer_disclaimer=bool(disclaimers),
             has_brand_mark=True,
             disclaimer_text=common_text,
+            disclaimer_color=common_color,
             footer_y=round(avg_y, 3),
         )
 

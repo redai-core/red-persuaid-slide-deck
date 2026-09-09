@@ -321,13 +321,13 @@ class UniversalDeckCompiler:
             p2.font.color.rgb = _hex_to_rgb(template.palette.text_primary)
             p2.space_before = Pt(4)
 
-        # Footer Disclaimer & Brand Mark Pill
+        # Footer Disclaimer (Matching exact reference styling: pure white, 11pt, multi-line)
         if template.chrome.has_footer_disclaimer:
             disclaimer = slide.shapes.add_textbox(
                 Inches(template.canvas.content_x * W),
                 Inches(template.chrome.footer_y * H),
                 Inches(0.60 * W),
-                Inches(0.04 * H),
+                Inches(0.06 * H),
             )
             dtf = disclaimer.text_frame
             dtf.word_wrap = True
@@ -336,7 +336,8 @@ class UniversalDeckCompiler:
             dp.text = template.chrome.disclaimer_text
             dp.font.name = template.typography.font_body
             dp.font.size = Pt(template.typography.size_micro)
-            dp.font.color.rgb = _hex_to_rgb(template.palette.text_muted)
+            # Driven purely by template chrome token
+            dp.font.color.rgb = _hex_to_rgb(template.chrome.disclaimer_color)
 
         # Brand Mark Pill (Bottom Right)
         if template.chrome.has_brand_mark:
@@ -344,7 +345,7 @@ class UniversalDeckCompiler:
                 Inches((template.canvas.content_x + template.canvas.content_w - 0.20) * W),
                 Inches(template.chrome.footer_y * H),
                 Inches(0.20 * W),
-                Inches(0.04 * H),
+                Inches(0.06 * H),
             )
             ptf = pill.text_frame
             ptf.margin_left = ptf.margin_top = ptf.margin_right = ptf.margin_bottom = 0
@@ -352,7 +353,7 @@ class UniversalDeckCompiler:
             pp.alignment = PP_ALIGN.RIGHT
             pp.text = f"{brand} · 2026"
             pp.font.name = template.typography.font_body
-            pp.font.size = Pt(template.typography.size_micro)
+            pp.font.size = Pt(11)
             pp.font.bold = True
             pp.font.color.rgb = _hex_to_rgb(template.palette.accent_primary)
 
@@ -430,18 +431,21 @@ class UniversalDeckCompiler:
             shape = slide.shapes.add_shape(
                 MSO_SHAPE.ROUNDED_RECTANGLE,
                 Inches(x * W),
-                Inches(0.22 * H),
+                Inches(0.20 * H),
                 Inches(card_w * W),
-                Inches(0.46 * H),
+                Inches(0.48 * H),
             )
             shape.fill.solid()
+            # Driven purely by template tokens - zero hardcoded hex
             shape.fill.fore_color.rgb = _hex_to_rgb(template.palette.container_primary)
             shape.line.color.rgb = _hex_to_rgb(template.palette.border_stroke)
+            shape.line.width = Pt(1.5)
 
             tf = shape.text_frame
             tf.word_wrap = True
-            tf.margin_left = tf.margin_right = Inches(0.2)
-            tf.margin_top = Inches(0.3)
+            tf.vertical_anchor = MSO_ANCHOR.TOP
+            tf.margin_left = tf.margin_right = Inches(0.25)
+            tf.margin_top = Inches(0.35)
 
             p_val = tf.paragraphs[0]
             p_val.text = str(slots.get(stat_key, "--"))
@@ -450,11 +454,13 @@ class UniversalDeckCompiler:
             p_val.font.color.rgb = _hex_to_rgb(template.palette.accent_primary)
 
             p_lbl = tf.add_paragraph()
-            p_lbl.text = str(slots.get(label_key, "Benchmark Metric"))
+            # Remove trailing periods from labels
+            label_text = str(slots.get(label_key, "Benchmark Metric")).rstrip(".")
+            p_lbl.text = label_text
             p_lbl.font.size = Pt(template.typography.size_card_header)
             p_lbl.font.bold = True
             p_lbl.font.color.rgb = _hex_to_rgb(template.palette.text_primary)
-            p_lbl.space_before = Pt(10)
+            p_lbl.space_before = Pt(14)
 
         # Solid Cyan Takeaway Banner
         self._add_takeaway_banner(slide, template, slots.get("takeaway_banner", ""))
