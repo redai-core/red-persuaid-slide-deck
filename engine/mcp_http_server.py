@@ -35,6 +35,7 @@ from engine.mcp_server import (
     SERVER_INFO,
     SERVER_CAPABILITIES,
     TOOLS,
+    _GENERATED_DECKS,
 )
 
 logging.basicConfig(
@@ -146,6 +147,34 @@ class PersuAIdHTTPHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(resp_body)
             return
+
+        elif path.startswith("/download/"):
+            fname = urllib.parse.unquote(path.replace("/download/", "")).strip()
+            target_file = _GENERATED_DECKS.get(fname)
+            if not target_file or not target_file.exists():
+                for search_dir in [Path("/app/data"), Path("/tmp/persuaid_decks"), Path(".")]:
+                    cand = search_dir / fname
+                    if cand.exists():
+                        target_file = cand
+                        break
+
+            if target_file and target_file.exists():
+                self.send_response(200)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.presentationml.presentation")
+                self.send_header("Content-Disposition", f'attachment; filename="{target_file.name}"')
+                file_bytes = target_file.read_bytes()
+                self.send_header("Content-Length", str(len(file_bytes)))
+                self.end_headers()
+                self.wfile.write(file_bytes)
+                return
+            else:
+                self.send_response(404)
+                self._send_cors_headers()
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": f"File '{fname}' not found"}).encode("utf-8"))
+                return
 
         elif path == "/sse":
             session_id = uuid.uuid4().hex

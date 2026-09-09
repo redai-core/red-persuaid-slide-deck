@@ -100,22 +100,40 @@ class UniversalDeckCompiler:
                 self._render_generic_archetype(slide, template, arch, slots)
 
         out_path = Path(out_dir)
-        out_path.mkdir(parents=True, exist_ok=True)
+        try:
+            out_path.mkdir(parents=True, exist_ok=True)
+            test_file = out_path / ".write_test"
+            test_file.touch()
+            test_file.unlink()
+        except (PermissionError, OSError):
+            for fallback in [Path("/app/data"), Path("/tmp/persuaid_decks"), Path(".")]:
+                try:
+                    fallback.mkdir(parents=True, exist_ok=True)
+                    out_path = fallback
+                    break
+                except Exception:
+                    pass
+
         brand_slug = brand.replace(" ", "_").replace(".", "")
         deck_filename = f"{brand_slug}_GEO_Executive_Deck.pptx"
         dest_file = out_path / deck_filename
         prs.save(str(dest_file))
 
-        file_size_kb = round(dest_file.stat().st_size / 1024.0, 1)
+        import base64
+        file_bytes = dest_file.read_bytes()
+        file_size_kb = round(len(file_bytes) / 1024.0, 1)
+        deck_base64 = base64.b64encode(file_bytes).decode("ascii")
 
         return {
             "status": "success",
             "session_id": session_id,
             "brand": brand,
+            "filename": deck_filename,
             "total_slides": len(sorted_slide_keys),
             "deck_path": str(dest_file.resolve()),
             "file_size_kb": file_size_kb,
-            "message": f"Successfully compiled {len(sorted_slide_keys)}-slide native PPTX deck for {brand} -> {dest_file} ({file_size_kb} KB)",
+            "deck_base64": deck_base64,
+            "message": f"Successfully compiled {len(sorted_slide_keys)}-slide native PPTX deck for {brand} -> {dest_file} ({file_size_kb} KB). Base64 presentation payload included in 'deck_base64' for direct client workspace writing.",
         }
 
     def _set_background(self, slide: Any, hex_color: str) -> None:

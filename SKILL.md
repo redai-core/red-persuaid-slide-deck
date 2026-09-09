@@ -210,13 +210,24 @@ Generate the presentation based on the chosen path from Step 1:
      - Query `persuaid_get_archetypes(session_id="...", act="Act I")` to get compact slot schemas and character limits (~200 tokens).
      - Submit consulting copy via `persuaid_stage_act(session_id="...", act="Act I", slides=[...])`.
      - The server validates text against physical container geometry immediately, catching character overflows on that single act.
-  4. **Compile Deck**: Call `persuaid_compile_session(session_id="...")`. Returns the final native `.pptx` path compiled in 50ms with 95%+ visual fidelity.
+  4. **Compile Deck**: Call `persuaid_compile_session(session_id="...")`. Returns the presentation path, file size, and the Base64 payload (`deck_base64`). If running in a remote MCP environment (Claude Cowork/Cloud), write the base64 string directly to your local workspace (`/mnt/user-data/outputs/<filename>` or local path) using Python or Bash:
+     ```python
+     import base64
+     with open(output_path, "wb") as f:
+         f.write(base64.b64decode(response["deck_base64"]))
+     ```
   
   *CRITICAL ANTI-SURGERY RULE*: The agent must **NEVER** manually unzip `.pptx` files, parse raw OpenXML in bash, write ad-hoc Python regex (`re.sub`), or tweak XML coordinates slide-by-slide. Always invoke the deterministic MCP tools.
 
 - **Path B: Default 21-Slide Redcomm Masterwork (Single-Shot Compilation)**:
   Generate the complete 21-slide executive presentation using either:
-  - **MCP Tool (When `persuaid-mcp` is connected)**: Call `persuaid_generate_deck` with `brand`, `category`, `competitors`, and `domain` to compile the presentation in seconds.
+  - **MCP Tool (When `persuaid-mcp` is connected)**: Call `persuaid_generate_deck` with `brand`, `category`, `competitors`, `domain`, and optional `metrics_data` (pass the inline audit JSON dictionary directly to avoid remote filesystem path mismatches).
+    - **Remote Filesystem Bridge**: The tool returns `"deck_base64"`, `"download_url"`, and exposes the presentation as an MCP Resource (`persuaid://decks/<filename>`). Decode `"deck_base64"` to save the presentation directly into your local environment:
+      ```python
+      import base64
+      with open(f"/mnt/user-data/outputs/{res['filename']}", "wb") as f:
+          f.write(base64.b64decode(res["deck_base64"]))
+      ```
   - **Standalone CLI**:
     ```bash
     python3 -m engine.deckcraft.cli \

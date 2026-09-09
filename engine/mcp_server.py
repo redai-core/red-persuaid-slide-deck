@@ -53,7 +53,10 @@ SERVER_INFO = {
 
 SERVER_CAPABILITIES = {
     "tools": {},
+    "resources": {},
 }
+
+_GENERATED_DECKS: Dict[str, Path] = {}
 
 TOOLS = [
     {
@@ -191,6 +194,10 @@ TOOLS = [
                 "metrics_path": {
                     "type": "string",
                     "description": "Optional path to metrics.json or otterly_intel.json from an audit run.",
+                },
+                "metrics_data": {
+                    "type": "object",
+                    "description": "Optional inline metrics JSON object from Otterly or Apify audit (avoids filesystem path mismatches when running over remote MCP).",
                 },
                 "out_dir": {
                     "type": "string",
@@ -932,10 +939,12 @@ def handle_persuaid_generate_deck(args: Dict[str, Any]) -> Dict[str, Any]:
     competitors = args.get("competitors", "Competitor A, Competitor B")
     domain = args.get("domain")
     metrics_path = args.get("metrics_path")
+    metrics_data = args.get("metrics_data") or args.get("metrics")
     out_dir = args.get("out_dir", ".")
     year = int(args.get("year", 2026))
 
     try:
+        import base64
         from engine.deckcraft.builder import compile_deck
         deck_path = compile_deck(
             brand=brand,
@@ -943,16 +952,28 @@ def handle_persuaid_generate_deck(args: Dict[str, Any]) -> Dict[str, Any]:
             competitors=competitors,
             domain=domain,
             metrics_path=metrics_path,
+            metrics_data=metrics_data,
             out_dir=out_dir,
             year=year,
         )
+
+        file_bytes = deck_path.read_bytes()
+        file_size_kb = round(len(file_bytes) / 1024.0, 1)
+        deck_b64 = base64.b64encode(file_bytes).decode("ascii")
+
+        _GENERATED_DECKS[deck_path.name] = deck_path
+
         return {
             "status": "success",
             "brand": brand,
             "category": category,
+            "filename": deck_path.name,
             "deck_path": str(deck_path),
+            "file_size_kb": file_size_kb,
             "total_slides": 21,
-            "message": f"Successfully compiled 21-slide Redcomm executive GEO pitch deck for {brand} -> {deck_path}",
+            "deck_base64": deck_b64,
+            "download_url": f"/download/{deck_path.name}",
+            "message": f"Successfully compiled 21-slide Redcomm executive GEO pitch deck for {brand} ({file_size_kb} KB). Base64 payload provided in 'deck_base64' for direct writing to client workspace.",
         }
     except Exception as e:
         logger.exception(f"Failed to compile presentation deck for {brand}: {e}")
@@ -1066,7 +1087,12 @@ def handle_persuaid_compile_session(args: Dict[str, Any]) -> Dict[str, Any]:
     try:
         from engine.universal_compiler import UniversalDeckCompiler
         compiler = UniversalDeckCompiler()
-        return compiler.compile_session(session_id=session_id, out_dir=out_dir)
+        res = compiler.compile_session(session_id=session_id, out_dir=out_dir)
+        if res.get("status") == "success" and res.get("deck_path"):
+            dp = Path(res["deck_path"])
+            _GENERATED_DECKS[dp.name] = dp
+            res["download_url"] = f"/download/{dp.name}"
+        return res
     except Exception as e:
         logger.exception(f"Failed to compile session {session_id}: {e}")
         return {
@@ -1129,6 +1155,79 @@ def process_json_rpc(request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
             "id": req_id,
             "result": {
                 "tools": TOOLS,
+            },
+        }
+
+    if method == "resources/list":
+        # Scan known locations for PPTX files
+        resources = []
+        seen = set()
+        # 1. Registered decks
+        for fname, fpath in _GENERATED_DECKS.items():
+            if fpath.exists() and fname not in seen:
+                seen.add(fname)
+                resources.append({
+                    "uri": f"persuaid://decks/{fname}",
+                    "name": fname,
+                    "description": f"Compiled PowerPoint presentation ({round(fpath.stat().st_size / 1024.0, 1)} KB)",
+                    "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                })
+        # 2. Check /app/data, /tmp/persuaid_decks, .
+        for search_dir in [Path("/app/data"), Path("/tmp/persuaid_decks"), Path(".")]:
+            if search_dir.exists():
+                for pptx_f in search_dir.glob("*.pptx"):
+                    if pptx_f.name not in seen:
+                        seen.add(pptx_f.name)
+                        _GENERATED_DECKS[pptx_f.name] = pptx_f
+                        resources.append({
+                            "uri": f"persuaid://decks/{pptx_f.name}",
+                            "name": pptx_f.name,
+                            "description": f"Compiled PowerPoint presentation ({round(pptx_f.stat().st_size / 1024.0, 1)} KB)",
+                            "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        })
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "resources": resources,
+            },
+        }
+
+    if method == "resources/read":
+        uri = params.get("uri", "")
+        fname = uri.replace("persuaid://decks/", "").strip()
+        fpath = _GENERATED_DECKS.get(fname)
+        if not fpath or not fpath.exists():
+            # Check fallback locations
+            for search_dir in [Path("/app/data"), Path("/tmp/persuaid_decks"), Path(".")]:
+                candidate = search_dir / fname
+                if candidate.exists():
+                    fpath = candidate
+                    break
+
+        if not fpath or not fpath.exists():
+            return {
+                "jsonrpc": "2.0",
+                "id": req_id,
+                "error": {
+                    "code": -32602,
+                    "message": f"Resource not found for URI: {uri}",
+                },
+            }
+
+        import base64
+        blob_b64 = base64.b64encode(fpath.read_bytes()).decode("ascii")
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {
+                "contents": [
+                    {
+                        "uri": uri,
+                        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        "blob": blob_b64,
+                    }
+                ],
             },
         }
 

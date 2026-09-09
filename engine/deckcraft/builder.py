@@ -103,6 +103,7 @@ def compile_deck(
     competitors: str = "Competitor A, Competitor B",
     domain: Optional[str] = None,
     metrics_path: Optional[str] = None,
+    metrics_data: Optional[Dict[str, Any]] = None,
     out_dir: str = ".",
     year: int = 2026,
 ) -> Path:
@@ -115,7 +116,11 @@ def compile_deck(
         "year": year,
     }
 
-    if metrics_path and Path(metrics_path).exists():
+    if metrics_data and isinstance(metrics_data, dict):
+        data["metrics"] = metrics_data
+        if "otterly_intel" in metrics_data:
+            data["otterly_intel"] = metrics_data["otterly_intel"]
+    elif metrics_path and Path(metrics_path).exists():
         try:
             metrics_content = json.loads(Path(metrics_path).read_text(encoding="utf-8"))
             data["metrics"] = metrics_content
@@ -126,5 +131,24 @@ def compile_deck(
 
     builder = DeckCraftBuilder(data)
     brand_slug = brand.replace(" ", "_")
-    target_path = Path(out_dir) / f"{brand_slug}_GEO_Pitch_Deck_{year}.pptx"
+
+    # Safe output directory resolution: if client passes an inaccessible remote path (e.g. /home/claude or /mnt/user-data), fall back safely
+    target_dir = Path(out_dir)
+    try:
+        target_dir.mkdir(parents=True, exist_ok=True)
+        # Test writability
+        test_file = target_dir / ".write_test"
+        test_file.touch()
+        test_file.unlink()
+    except (PermissionError, OSError):
+        # Fallback to container writable locations
+        for fallback in [Path("/app/data"), Path("/tmp/persuaid_decks"), Path(".")]:
+            try:
+                fallback.mkdir(parents=True, exist_ok=True)
+                target_dir = fallback
+                break
+            except Exception:
+                pass
+
+    target_path = target_dir / f"{brand_slug}_GEO_Pitch_Deck_{year}.pptx"
     return builder.build(str(target_path))
