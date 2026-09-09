@@ -990,9 +990,8 @@ def handle_persuaid_learn_template(args: Dict[str, Any]) -> Dict[str, Any]:
     name = args.get("name")
 
     try:
-        from engine.template_decompiler import TemplateDecompiler
-        decompiler = TemplateDecompiler(template_path)
-        profile = decompiler.decompile(template_id=template_id, name=name)
+        from engine.template_decompiler import decompile_template_file
+        profile = decompile_template_file(template_path)
 
         return {
             "status": "success",
