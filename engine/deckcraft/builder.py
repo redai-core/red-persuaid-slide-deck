@@ -23,7 +23,7 @@ class DeckCraftBuilder:
         self.blank_layout = self.prs.slide_layouts[6]
 
     def _normalize_data(self, raw: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensures all required data keys exist with sensible category defaults."""
+        """Ensures all required data keys exist with grounded audit parsing and zero fake fallbacks."""
         brand = raw.get("brand", "Your Brand")
         category = raw.get("category", "your category")
         competitors = raw.get("competitors", "Competitor A, Competitor B, Competitor C")
@@ -38,33 +38,74 @@ class DeckCraftBuilder:
         otterly = raw.get("otterly_intel", {}) or metrics.get("otterly_intel", {})
         kpis = metrics.get("kpis", {})
 
+        # Handle raw Otterly API schema if directly passed
+        otterly_summary = raw.get("summary") or metrics.get("summary") or {}
+        if not otterly and otterly_summary:
+            sov_raw = otterly_summary.get("shareOfVoice", 0.0)
+            sov_pct = round(sov_raw * 100.0, 1) if sov_raw <= 1.0 else round(sov_raw, 1)
+            rank_raw = otterly_summary.get("averageRank", 1)
+            avg_rank = f"#{round(rank_raw, 1)}" if isinstance(rank_raw, (int, float)) else str(rank_raw)
+
+            otterly = {
+                "hero_stat": {
+                    "share_of_voice_pct": sov_pct,
+                    "average_rank": avg_rank,
+                    "sentiment_score": "N/A",
+                    "win_rate_pct": f"{round(sov_pct)}%",
+                },
+                "competitor_gap": [],
+            }
+
+            brand_mentions = (
+                raw.get("allBrandsAnalysis", {}).get("brandMentions")
+                or raw.get("competitorBrandsAnalysis", {}).get("brandMentions")
+                or metrics.get("allBrandsAnalysis", {}).get("brandMentions")
+                or []
+            )
+            for bm in brand_mentions:
+                bname = bm.get("brand", "")
+                b_sov = bm.get("shareOfVoice", 0.0)
+                b_pct = round(b_sov * 100.0, 1) if b_sov <= 1.0 else round(b_sov, 1)
+                if bname and bname.lower() != brand.lower():
+                    otterly["competitor_gap"].append({
+                        "competitor": bname,
+                        "share_of_voice_pct": b_pct,
+                    })
+
         hero_stat = raw.get("hero_stat", {})
         if not hero_stat:
-            if otterly:
+            if otterly and "hero_stat" in otterly:
                 hero_stat = otterly.get("hero_stat", {})
+            elif kpis.get("ai_share_of_voice_pct") is not None:
+                hero_stat = {
+                    "share_of_voice_pct": kpis.get("ai_share_of_voice_pct"),
+                    "average_rank": kpis.get("average_rank", "#1"),
+                    "sentiment_score": kpis.get("sentiment_score", "N/A"),
+                    "win_rate_pct": f"{kpis.get('win_rate_pct', 0)}%",
+                }
             else:
                 hero_stat = {
-                    "share_of_voice_pct": kpis.get("ai_share_of_voice_pct", 9.3),
-                    "average_rank": kpis.get("average_rank", "#4"),
-                    "sentiment_score": kpis.get("sentiment_score", "63/100"),
-                    "win_rate_pct": f"{kpis.get('win_rate_pct', 18)}%",
+                    "share_of_voice_pct": 0.0,
+                    "average_rank": "Unranked",
+                    "sentiment_score": "N/A",
+                    "win_rate_pct": "0%",
                 }
 
         competitor_gap = raw.get("competitor_gap", [])
         if not competitor_gap:
-            if otterly:
+            if otterly and "competitor_gap" in otterly:
                 competitor_gap = otterly.get("competitor_gap", [])
             elif metrics.get("competitor_landscape"):
                 for c in metrics.get("competitor_landscape", []):
                     competitor_gap.append({
                         "competitor": c.get("competitor"),
-                        "share_of_voice_pct": c.get("presence_rate_pct", 20.0),
+                        "share_of_voice_pct": c.get("presence_rate_pct", 0.0),
                     })
-            if not competitor_gap:
-                for i, c_name in enumerate(comp_list[:4]):
+            else:
+                for c_name in comp_list[:4]:
                     competitor_gap.append({
                         "competitor": c_name,
-                        "share_of_voice_pct": round(30.0 - (i * 4.5), 1),
+                        "share_of_voice_pct": 0.0,
                     })
 
         return {

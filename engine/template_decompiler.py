@@ -36,6 +36,7 @@ from engine.template_profile import (
     ArchetypeSpec,
     TemplateProfile,
 )
+from engine.text_budget import estimate_char_budget
 
 logger = logging.getLogger("template-decompiler")
 
@@ -438,6 +439,92 @@ class TemplateDecompiler:
                 SlotContract(slot_id="contact_info", role="card_body", max_chars=150, recommended_chars=80, font_size=18),
             ],
         )
+
+        # If the input presentation has actual slides and shapes, inspect them to create custom archetypes
+        if len(self.prs.slides) > 0:
+            for s_idx, slide in enumerate(self.prs.slides, start=1):
+                slide_elements: List[ElementGeometry] = []
+                slide_slots: List[SlotContract] = []
+                text_shapes = []
+
+                for shape in slide.shapes:
+                    x = round(shape.left / float(self.width_emu), 3)
+                    y = round(shape.top / float(self.height_emu), 3)
+                    w = round(shape.width / float(self.width_emu), 3)
+                    h = round(shape.height / float(self.height_emu), 3)
+
+                    stype = "rectangle"
+                    if shape.has_text_frame:
+                        stype = "text_box"
+                        text_shapes.append(shape)
+                    elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                        stype = "media_placeholder"
+
+                    slide_elements.append(
+                        ElementGeometry(
+                            x=x,
+                            y=y,
+                            w=w,
+                            h=h,
+                            shape_type=stype,
+                            fill_color=_extract_shape_fill(shape),
+                        )
+                    )
+
+                # Generate slot contracts with physical geometry budgets
+                for t_idx, t_shape in enumerate(text_shapes, start=1):
+                    role = "body"
+                    pt_size = 15
+                    try:
+                        if t_shape.text_frame and t_shape.text_frame.paragraphs:
+                            p0 = t_shape.text_frame.paragraphs[0]
+                            if p0.runs and p0.runs[0].font.size:
+                                pt_size = int(p0.runs[0].font.size.pt)
+                    except Exception:
+                        pass
+
+                    if t_shape.top < self.height_emu * 0.18:
+                        role = "kicker" if pt_size < 18 else "headline"
+                    elif pt_size >= 40:
+                        role = "hero_metric" if pt_size >= 48 else "action_headline"
+                    elif pt_size >= 24:
+                        role = "action_headline"
+                    elif pt_size >= 18:
+                        role = "card_title"
+
+                    budget = estimate_char_budget(
+                        width_emu=int(t_shape.width),
+                        height_emu=int(t_shape.height),
+                        font_size_pt=pt_size,
+                        role=role,
+                    ) or 120
+
+                    slot_id = f"slot_{t_idx}"
+                    if role == "headline" and not any(s.slot_id == "headline" for s in slide_slots):
+                        slot_id = "headline"
+                    elif role == "kicker" and not any(s.slot_id == "kicker" for s in slide_slots):
+                        slot_id = "kicker"
+
+                    slide_slots.append(
+                        SlotContract(
+                            slot_id=slot_id,
+                            role=role,
+                            max_chars=budget,
+                            recommended_chars=max(15, int(budget * 0.7)),
+                            font_size=pt_size,
+                        )
+                    )
+
+                if slide_slots:
+                    arch_id = f"ARCH-SLIDE-{s_idx}"
+                    archetypes[arch_id] = ArchetypeSpec(
+                        archetype_id=arch_id,
+                        name=f"Template Layout Slide {s_idx}",
+                        description=f"Extracted layout from uploaded presentation slide {s_idx} with {len(slide_slots)} fillable slots.",
+                        suggested_acts=["Act I", "Act II", "Act III", "Act IV"],
+                        elements=slide_elements,
+                        slots=slide_slots,
+                    )
 
         return archetypes
 

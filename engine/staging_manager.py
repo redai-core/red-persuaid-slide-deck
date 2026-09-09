@@ -23,6 +23,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from engine.template_profile import TemplateProfile, ArchetypeSpec, SlotContract
 from engine.template_decompiler import decompile_pptx_file
+from engine.copy_guard import sanitize_generated_copy
+from engine.copy_repair import finish_claim
+from engine.text_budget import trim_to_char_budget
 
 logger = logging.getLogger("staging-manager")
 
@@ -187,30 +190,38 @@ class DeckStagingManager:
                 })
                 continue
 
-            # Character Budget & Slot Contract Validation
+            # Character Budget & Slot Contract Validation with Deterministic Sanitization
+            cleaned_slots: Dict[str, Any] = {}
             for slot_id, content in slots.items():
                 slot_contract = arch.get_slot(slot_id)
-                if not slot_contract:
-                    continue  # allow custom/extra slots without failing
-
                 if isinstance(content, str):
-                    cur_len = len(content.strip())
-                    if cur_len > slot_contract.max_chars:
-                        issues.append({
-                            "slide_number": slide_no,
-                            "archetype_id": arch_id,
-                            "slot_id": slot_id,
-                            "issue_type": "overflow",
-                            "message": f"Slot '{slot_id}' exceeds maximum character budget ({cur_len} chars > {slot_contract.max_chars} max). Please condense.",
-                            "current_length": cur_len,
-                            "max_length": slot_contract.max_chars,
-                        })
+                    # Clean markdown formatting and trailing dangling clauses
+                    cleaned = finish_claim(sanitize_generated_copy(content))
+
+                    if slot_contract:
+                        cur_len = len(cleaned.strip())
+                        if cur_len > slot_contract.max_chars:
+                            # Flag overflow so validator warns the caller
+                            issues.append({
+                                "slide_number": slide_no,
+                                "archetype_id": arch_id,
+                                "slot_id": slot_id,
+                                "issue_type": "overflow",
+                                "message": f"Slot '{slot_id}' exceeds maximum character budget ({cur_len} chars > {slot_contract.max_chars} max). Please condense.",
+                                "current_length": cur_len,
+                                "max_length": slot_contract.max_chars,
+                            })
+                            # Trim for safe display in case the user proceeds anyway
+                            cleaned = trim_to_char_budget(cleaned, slot_contract.max_chars)
+                    cleaned_slots[slot_id] = cleaned
+                else:
+                    cleaned_slots[slot_id] = content
 
             session["slides"][str(slide_no)] = {
                 "slide_number": slide_no,
                 "archetype_id": arch_id,
                 "act": act,
-                "slots": slots,
+                "slots": cleaned_slots,
                 "notes": slide_data.get("notes"),
             }
             staged_count += 1

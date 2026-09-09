@@ -5,6 +5,7 @@ Compiles staged Act-by-Act presentation sessions into native OpenXML .pptx files
 using normalized unit-space geometry, palette tokens, and layout archetypes.
 """
 
+import copy
 import logging
 import sys
 from pathlib import Path
@@ -15,6 +16,7 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 # Add project root to sys.path
@@ -22,10 +24,82 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from engine.template_profile import TemplateProfile, ArchetypeSpec
+from engine.copy_guard import sanitize_generated_copy
 from engine.staging_manager import DeckStagingManager
+from engine.template_profile import ArchetypeSpec, TemplateProfile
 
 logger = logging.getLogger("universal-compiler")
+
+
+def _clone_first_ppr(tf):
+    """Deep-copy the first <a:pPr> (alignment, indent, line spacing) in the text frame."""
+    for p in tf.paragraphs:
+        ppr = p._p.find(qn("a:pPr"))
+        if ppr is not None:
+            return copy.deepcopy(ppr)
+    return None
+
+
+def _clone_first_rpr(tf):
+    """Deep-copy the first <a:rPr> (font family, weight, kerning, color, size) in the frame."""
+    for p in tf.paragraphs:
+        for r in p.runs:
+            rpr = r._r.find(qn("a:rPr"))
+            if rpr is not None:
+                return copy.deepcopy(rpr)
+        end_rpr = p._p.find(qn("a:endParaRPr"))
+        if end_rpr is not None:
+            clone = copy.deepcopy(end_rpr)
+            clone.tag = qn("a:rPr")
+            return clone
+    return None
+
+
+def _apply_ppr(paragraph, ppr) -> None:
+    if ppr is None:
+        return
+    p_el = paragraph._p
+    existing = p_el.find(qn("a:pPr"))
+    if existing is not None:
+        p_el.remove(existing)
+    p_el.insert(0, copy.deepcopy(ppr))
+
+
+def _apply_rpr(run, rpr) -> None:
+    if rpr is None:
+        return
+    r_el = run._r
+    existing = r_el.find(qn("a:rPr"))
+    if existing is not None:
+        r_el.remove(existing)
+    r_el.insert(0, copy.deepcopy(rpr))
+
+
+def _set_textframe(tf, text: str, *, bold_first: bool = False, size_pt: Optional[int] = None, font_name: Optional[str] = None, color_rgb: Optional[RGBColor] = None) -> None:
+    """
+    Replace text in a text frame while preserving the template's typography.
+    Avoids python-pptx's default Calibri black behavior by copying and re-applying properties.
+    """
+    cleaned_text = sanitize_generated_copy(text)
+    src_ppr = _clone_first_ppr(tf)
+    src_rpr = _clone_first_rpr(tf)
+
+    tf.clear()
+    lines = cleaned_text.split("\n") if cleaned_text else [""]
+    for i, line in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = line
+        _apply_ppr(p, src_ppr)
+        for r in p.runs:
+            _apply_rpr(r, src_rpr)
+            if size_pt:
+                r.font.size = Pt(size_pt)
+            if font_name:
+                r.font.name = font_name
+            if color_rgb:
+                r.font.color.rgb = color_rgb
+            if bold_first and i == 0:
+                r.font.bold = True
 
 
 def _hex_to_rgb(hex_str: str) -> RGBColor:
@@ -52,11 +126,23 @@ class UniversalDeckCompiler:
         session = self.mgr.get_session(session_id)
         template = self.mgr.get_template(session.get("template_source") or session.get("template_id", "default"))
 
-        prs = Presentation()
-        # Set Canvas Dimensions
-        prs.slide_width = Inches(template.canvas.width_inches)
-        prs.slide_height = Inches(template.canvas.height_inches)
-        blank_layout = prs.slide_layouts[6]
+        # Use source presentation if available to retain custom master layouts, background art, and styles
+        source_file = getattr(template, "source_file", None)
+        if source_file and Path(source_file).exists():
+            try:
+                prs = Presentation(str(source_file))
+            except Exception as e:
+                logger.warning(f"Could not load source template {source_file}: {e}. Falling back to clean presentation.")
+                prs = Presentation()
+                prs.slide_width = Inches(template.canvas.width_inches)
+                prs.slide_height = Inches(template.canvas.height_inches)
+        else:
+            prs = Presentation()
+            # Set Canvas Dimensions
+            prs.slide_width = Inches(template.canvas.width_inches)
+            prs.slide_height = Inches(template.canvas.height_inches)
+
+        blank_layout = prs.slide_layouts[6] if len(prs.slide_layouts) > 6 else prs.slide_layouts[0]
 
         brand = session.get("brand", "Executive")
         slides_dict = session.get("slides", {})
