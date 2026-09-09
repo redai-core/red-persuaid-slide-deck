@@ -70,7 +70,7 @@ class DeckStagingManager:
         if p.exists():
             if p.suffix.lower() == ".json":
                 profile = TemplateProfile.from_json(p.read_text(encoding="utf-8"))
-            elif p.suffix.lower() in [".pptx", ".ppt"]:
+            elif p.suffix.lower() in [".pptx", ".ppt", ".pdf"]:
                 profile = decompile_pptx_file(str(p))
             else:
                 raise ValueError(f"Unsupported template format: {p}")

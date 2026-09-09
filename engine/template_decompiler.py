@@ -529,10 +529,116 @@ class TemplateDecompiler:
         return archetypes
 
 
-def decompile_pptx_file(pptx_path: str, out_path: Optional[str] = None) -> TemplateProfile:
-    """Convenience helper to decompile a PPTX and export JSON."""
-    decompiler = TemplateDecompiler(pptx_path)
-    profile = decompiler.decompile()
+class PDFVisualExtractor:
+    """Extracts visual DNA (dimensions, aspect ratio, palette tokens) from a PDF presentation."""
+
+    def __init__(self, pdf_path: str):
+        self.path = Path(pdf_path)
+        if not self.path.exists():
+            raise FileNotFoundError(f"PDF file not found: {pdf_path}")
+
+    def extract_profile(self, template_id: Optional[str] = None, name: Optional[str] = None) -> TemplateProfile:
+        tid = template_id or self.path.stem.lower().replace(" ", "_")
+        tname = name or self.path.stem.replace("_", " ").title()
+
+        try:
+            import pypdfium2 as pdfium
+            from collections import Counter
+            pdf = pdfium.PdfDocument(str(self.path))
+            page_count = len(pdf)
+
+            # 1. Canvas dimensions & Aspect Ratio
+            page0 = pdf[0]
+            w_pt, h_pt = page0.get_size()
+            aspect = "16:9" if abs((w_pt / float(h_pt)) - (16.0 / 9.0)) < 0.1 else "4:3"
+            w_in = 20.0 if aspect == "16:9" else 10.0
+            h_in = 11.25 if aspect == "16:9" else 7.5
+
+            canvas = CanvasSpec(
+                width_inches=w_in,
+                height_inches=h_in,
+                aspect_ratio=aspect,
+                content_x=0.055,
+                content_y=0.20,
+                content_w=0.89,
+                content_h=0.72,
+            )
+
+            # 2. Color Palette Frequency Analysis
+            color_counts: Counter = Counter()
+            sample_pages = range(min(5, page_count))
+            for p_idx in sample_pages:
+                img = pdf[p_idx].render(scale=0.25).to_pil().convert("RGB")
+                small = img.resize((40, 40))
+                # Quantize by 16 to group neighboring shades
+                for r, g, b in small.get_flattened_data() if hasattr(small, "get_flattened_data") else small.getdata():
+                    rq, gq, bq = (r // 16) * 16, (g // 16) * 16, (b // 16) * 16
+                    color_counts[(rq, gq, bq)] += 1
+
+            most_common = color_counts.most_common(8)
+            bg_rgb = most_common[0][0] if most_common else (0, 0, 0)
+            bg_hex = f"{bg_rgb[0]:02X}{bg_rgb[1]:02X}{bg_rgb[2]:02X}"
+
+            container_rgb = most_common[1][0] if len(most_common) > 1 else (15, 23, 42)
+            container_hex = f"{container_rgb[0]:02X}{container_rgb[1]:02X}{container_rgb[2]:02X}"
+
+            # Pick a vibrant or distinct accent
+            accent_hex = "3EC0C0"
+            for rgb, _ in most_common[2:]:
+                # Check for saturation / brightness difference
+                if max(rgb) - min(rgb) > 30:
+                    accent_hex = f"{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+                    break
+
+            palette = PaletteTokens(
+                background=bg_hex,
+                container_primary=container_hex,
+                container_secondary="0D1117",
+                border_stroke=accent_hex,
+                accent_primary=accent_hex,
+                accent_secondary="38A6A6",
+                text_primary="FFFFFF",
+                text_secondary="E8EEF4",
+                text_muted="8BA8C8",
+                text_dark=container_hex,
+            )
+
+        except Exception as e:
+            logger.warning(f"PDF Visual Extraction failed: {e}. Using standard 16:9 executive dark tokens.")
+            canvas = CanvasSpec()
+            palette = PaletteTokens()
+
+        # Build clean consulting archetypes styled in the extracted visual DNA
+        decompiler = TemplateDecompiler.__new__(TemplateDecompiler)
+        decompiler.prs = Presentation()
+        decompiler.width_emu = int(canvas.width_inches * 914400)
+        decompiler.height_emu = int(canvas.height_inches * 914400)
+        decompiler.width_inches = canvas.width_inches
+        decompiler.height_inches = canvas.height_inches
+        archetypes = decompiler._discover_archetypes()
+
+        return TemplateProfile(
+            template_id=tid,
+            name=tname,
+            source_file=None, # Pure visual DNA mode: compile clean native shapes
+            canvas=canvas,
+            palette=palette,
+            typography=TypographyScale(),
+            chrome=ChromeSpec(),
+            archetypes=archetypes,
+        )
+
+
+def decompile_template_file(file_path: str, out_path: Optional[str] = None) -> TemplateProfile:
+    """Universal decompiler entry point supporting both PPTX and PDF presentation references."""
+    p = Path(file_path)
+    if p.suffix.lower() == ".pdf":
+        extractor = PDFVisualExtractor(str(p))
+        profile = extractor.extract_profile()
+    else:
+        decompiler = TemplateDecompiler(str(p))
+        profile = decompiler.decompile()
+
     if out_path:
         out_p = Path(out_path)
         out_p.parent.mkdir(parents=True, exist_ok=True)
@@ -541,12 +647,17 @@ def decompile_pptx_file(pptx_path: str, out_path: Optional[str] = None) -> Templ
     return profile
 
 
+def decompile_pptx_file(pptx_path: str, out_path: Optional[str] = None) -> TemplateProfile:
+    """Backwards-compatible alias for PPTX decompilation."""
+    return decompile_template_file(pptx_path, out_path)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="PersuAId PPTX Template Decompiler")
-    parser.add_argument("pptx_file", help="Path to input .pptx presentation")
+    parser = argparse.ArgumentParser(description="PersuAId PPTX & PDF Template Decompiler")
+    parser.add_argument("presentation_file", help="Path to input .pptx or .pdf presentation")
     parser.add_argument("--out", "-o", help="Output JSON path for template profile")
     args = parser.parse_args()
 
-    prof = decompile_pptx_file(args.pptx_file, args.out)
+    prof = decompile_template_file(args.presentation_file, args.out)
     if not args.out:
         print(prof.to_json())
