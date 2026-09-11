@@ -181,3 +181,13 @@ Generate a ready-to-run Python script using `python-pptx` (or `pptxgenjs`) follo
 - **Slide Archetypes & Wireframes**: `references/slide-archetypes.md`
 - **Intake & Interview Framework**: `references/interview-framework.md`
 - **Presentation Code Templates**: `references/slide-deck-code-templates.md`
+- **Locked Design Theme (Electrum DNA)**: `references/design-theme.json`
+- **Anti-Slop Rules**: `references/anti-slop-rules.md`
+- **Golden Deck Prototype**: `node scripts/generate_golden_deck.mjs`
+
+### Visual Production Mandate (Anti-Slop)
+
+When generating PPTX in Step 3:
+1. Load tokens from `references/design-theme.json` (client may override **accent only**).
+2. Use **locked shells** in `slide-deck-code-templates.md` — fill content slots; do not invent layouts or multi-accent palettes.
+3. Obey `references/anti-slop-rules.md` (no purple gradients, no AI decorative imagery, no orange table headers).

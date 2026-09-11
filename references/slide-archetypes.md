@@ -5,14 +5,13 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 ---
 
 ## 1. Title / Cover Slide (`ARCH-TITLE`)
-- **Visual Structure**: Minimalist, high-authority cover with high contrast.
+- **Visual Structure**: Minimalist, high-authority cover — real client photo + gradient when available, otherwise the shell's abstract-glow fallback. **Never a flat black background** — that reads as unfinished, not minimalist.
 - **Components**:
-  - Brand Monogram / Logo mark at top.
-  - Deck Category Tag (e.g. `AI VISIBILITY REPORT`, `COMMERCIAL STRATEGY`, `GEO AUDIT`).
-  - Client / Subject Name in bold primary heading.
-  - Core Subtitle: The central thematic question or scope statement.
-  - Scope Metrics / Metadata Bar: 3-4 key parameters (e.g., `25 category prompts | 225 data points | 4 engines analysed`).
-  - Geography & Date metadata (e.g., `Market: Indonesia | Prepared by [Agency] · [Date]`).
+  - Kicker: a **category tag**, e.g. `GENERATIVE ENGINE OPTIMIZATION · EXECUTIVE BRIEFING` — **not the bare client/brand name**. The client name is not a heading element on this slide; it already appears small in the footer (same as every other slide), so don't also float it as a standalone accent-colored line above the headline.
+  - Headline: the assertive finding-as-thesis (2 lines), not a generic "[Client] GEO Audit" label.
+  - Core Subtitle: the central thematic question or scope statement.
+  - Optional scope-metrics row (3-4 key parameters, e.g. `71 prompts audited | 3 journey stages | 4 AI engines | 15 cities tracked`) — a small hero-stat strip *below* the subtitle, not instead of it.
+  - Geography & Date metadata (e.g., `Market: Indonesia · Prepared by [Agency] · [Date]`).
 
 ---
 
@@ -32,7 +31,7 @@ This catalog defines the generalized slide archetypes extracted from high-impact
 ---
 
 ## 3. 5-Stage AI Search Journey Overview (`ARCH-JOURNEY-MAP`)
-- **Visual Structure**: Full-width high-contrast structured table with an orange/coral header (`#FA541C` / `#FF5500`) and 5 clean stage row containers on a dark background.
+- **Visual Structure**: Full-width high-contrast structured table with **accent-teal** stroke/headers (`#3EC0C0` from `design-theme.json`; never orange/coral) and 5 clean stage row containers on a pure black background.
 - **Components**:
   - **Kicker**: `SEARCH JOURNEY` or `AUDIENCE DISCOVERY`
   - **Action Title**: Narrative takeaway on the journey (e.g., *"Who we're reaching, and the journey we must own end-to-end"*)

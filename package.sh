@@ -1,35 +1,53 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Packaging script for PersuAId
-# Creates a clean .skill bundle for Claude Desktop / Claude Web and syncs to local ~/.agents/skills/
+# Packaging script for PersuAId (this repo root)
+# Creates a clean .skill bundle for Claude Desktop / Claude Web upload.
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+cd "${ROOT}"
 
 SKILL_NAME="persuaid"
 DIST_DIR="dist"
 OUTPUT_FILE="${DIST_DIR}/${SKILL_NAME}.skill"
 LOCAL_SKILL_DIR="${HOME}/.agents/skills/${SKILL_NAME}"
 
-echo "📦 Packaging ${SKILL_NAME}..."
+echo "Packaging ${SKILL_NAME} from ${ROOT}..."
+
+if [[ ! -f SKILL.md ]]; then
+  echo "ERROR: SKILL.md not found at repo root" >&2
+  exit 1
+fi
 
 mkdir -p "${DIST_DIR}"
 rm -f "${OUTPUT_FILE}"
 
-# Clean any existing local pycaches
 find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 find . -type f -name "*.pyc" -delete 2>/dev/null || true
 
-# Package SKILL.md, references, scripts, and engine into a clean zip archive with .skill extension
-zip -r "${OUTPUT_FILE}" SKILL.md references/ scripts/ engine/ -x "*/__pycache__/*" -x "*.pyc" -x "*.DS_Store" > /dev/null
+INCLUDE=(SKILL.md references/ scripts/ engine/)
+[[ -d assets ]] && INCLUDE+=(assets/)
+for f in requirements.txt requirements-server.txt package.json pyproject.toml; do
+  [[ -f "$f" ]] && INCLUDE+=("$f")
+done
 
-echo "✓ Successfully created: ${OUTPUT_FILE}"
+zip -r "${OUTPUT_FILE}" "${INCLUDE[@]}" \
+  -x "*/__pycache__/*" -x "*.pyc" -x "*.DS_Store" -x "*/node_modules/*" \
+  > /dev/null
 
-# Synchronize directly to ~/.agents/skills/persuaid/
-if [ -d "${HOME}/.agents/skills" ]; then
-  echo "🔄 Syncing to local skill directory: ${LOCAL_SKILL_DIR}..."
-  mkdir -p "${LOCAL_SKILL_DIR}"
-  cp -r SKILL.md references scripts engine "${LOCAL_SKILL_DIR}/"
-  cp "${OUTPUT_FILE}" "${LOCAL_SKILL_DIR}/"
-  echo "✓ Local skill updated!"
+SIZE="$(du -h "${OUTPUT_FILE}" | awk '{print $1}')"
+echo "Created: ${OUTPUT_FILE} (${SIZE})"
+unzip -l "${OUTPUT_FILE}" | head -40
+
+# Optional local install (best-effort; upload still works without this)
+if [[ -d "${HOME}/.agents/skills" ]]; then
+  if mkdir -p "${LOCAL_SKILL_DIR}" 2>/dev/null; then
+    cp -R SKILL.md references scripts engine "${LOCAL_SKILL_DIR}/"
+    cp "${OUTPUT_FILE}" "${LOCAL_SKILL_DIR}/"
+    echo "Local skill updated: ${LOCAL_SKILL_DIR}"
+  else
+    echo "Skipped local sync (no permission to ${LOCAL_SKILL_DIR})."
+  fi
 fi
 
-echo "Ready to use in Claude Desktop, Claude Web, and local agents."
+echo "Upload ${OUTPUT_FILE} to Claude Desktop / Claude Web Custom Skills."

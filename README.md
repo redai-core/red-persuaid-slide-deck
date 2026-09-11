@@ -39,6 +39,19 @@
 
 ---
 
+## Design System (Anti-Slop / Electrum DNA)
+
+Generated decks follow a **locked visual system** extracted from the Electrum AI Visibility CONVR reference:
+
+- Tokens: `references/design-theme.json` (accent `#3EC0C0`, pure black canvas)
+- Rules: `references/anti-slop-rules.md`
+- Locked shells: `references/slide-deck-code-templates.md` (slot-fill only)
+- Prototype: `npm install && npm run golden` → `output/PersuAId_Golden_ElectrumDNA.pptx`
+
+Client decks may override **accent + logos + cover photo** only — not layout geometry.
+
+---
+
 ## Generalized Slide Archetypes Catalog (Step 2 & 3)
 
 - **`ARCH-TITLE`**: High-contrast cover with scope metrics & metadata.
@@ -67,9 +80,11 @@
 .
 ├── SKILL.md                          # Skill definition & 3-step execution rules
 ├── references/                       # On-demand reference documentation
+│   ├── design-theme.json             # Locked Electrum DNA color/type/geometry tokens
+│   ├── anti-slop-rules.md            # Visual production constraints
 │   ├── slide-archetypes.md           # 17 slide archetypes & visual specs
 │   ├── interview-framework.md        # 10-dimension deep client discovery engine
-│   └── slide-deck-code-templates.md  # Single-file HTML with PptxGenJS 1-click export templates
+│   └── slide-deck-code-templates.md  # Locked pptxgenjs shells (slot-fill)
 ├── engine/                           # 🚀 Stealth Camoufox scraping & auth engine
 │   ├── cli.py                        # CLI entry point (auth, audit, batch)
 │   ├── models.py                     # Pydantic data models (AuditResult, Citation, AccountInfo)

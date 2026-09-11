@@ -34,4 +34,9 @@ queries*.json
 metrics*.json
 *_AI_Search_Journey_*.csv
 *_GEO_Audit_*.pptx
+output/
+
+# Node (pptxgenjs golden deck)
+node_modules/
+package-lock.json
 

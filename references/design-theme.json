@@ -1,0 +1,130 @@
+{
+  "$schema_note": "PersuAId locked design tokens extracted from Electrum AI Visibility CONVR reference deck. LLM fills content slots only — never invent new palettes or layouts.",
+  "id": "persuaid-electrum-dna",
+  "version": "1.0.0",
+  "source": "Electrum AI Visibility CONVR (1).pptx",
+  "canvas": {
+    "name": "LAYOUT_16_9_HD",
+    "width_in": 13.333,
+    "height_in": 7.5,
+    "safe_x_in": 0.55,
+    "safe_w_in": 12.233,
+    "header_y_in": 0.35,
+    "content_top_in": 1.55,
+    "footer_y_in": 7.05
+  },
+  "colors": {
+    "bg": "000000",
+    "bg_elevated": "0D1117",
+    "bg_card": "141B24",
+    "bg_sidebar": "0E2B2B",
+    "bg_insight": "153F3F",
+    "stroke": "3EC0C0",
+    "stroke_muted": "2B7B7B",
+    "accent": "3EC0C0",
+    "accent_deep": "38A6A6",
+    "accent_banner": "3EC0C0",
+    "accent_banner_text": "0A1628",
+    "text": "FFFFFF",
+    "text_muted": "94A3B8",
+    "text_dim": "64748B",
+    "text_on_accent": "0A1628",
+    "card_light": "F9F9F9",
+    "card_light_text": "0D1117",
+    "semantic_pos": "166534",
+    "semantic_neg": "EF4444",
+    "semantic_warn": "F59E0B",
+    "bar_neutral_1": "1A2F4A",
+    "bar_neutral_2": "475569",
+    "bar_neutral_3": "8BA8C8",
+    "bar_neutral_4": "E8EEF4"
+  },
+  "typography": {
+    "display": "Arial",
+    "display_preferred": ["Samsung SS Head", "Inter", "Arial"],
+    "body": "Arial",
+    "body_preferred": ["Inter", "Poppins", "Arial"],
+    "kicker_size_pt": 11,
+    "title_size_pt": 26,
+    "title_compact_pt": 22,
+    "subtitle_size_pt": 13,
+    "metric_size_pt": 36,
+    "body_size_pt": 12,
+    "caption_size_pt": 10,
+    "footer_size_pt": 8,
+    "kicker_tracking": "loose",
+    "title_two_tone": {
+      "note": "Electrum headlines emphasize the punchline in a second color on the same line/block, not a uniform flat-white sentence. Split title into { lead, emphasis } — lead=text_muted-or-text weight-bold, emphasis=accent-or-text weight-bold, same fontSize, same line.",
+      "lead_color": "text",
+      "emphasis_color": "accent",
+      "both_bold": true
+    }
+  },
+  "geometry": {
+    "card_radius_in": 0.08,
+    "stroke_pt": 1.25,
+    "gap_in": 0.18,
+    "metric_card_h_in": 2.15,
+    "takeaway_h_in": 0.95,
+    "insight_bar_h_in": 0.85
+  },
+  "chrome": {
+    "kicker_align": "center",
+    "title_align": "center",
+    "title_align_variants": {
+      "note": "Data-dense slides (bar charts, tables, matrices) use left-aligned kicker+title so the headline composes with the chart instead of floating as a poster over it. Card-grid / quote-grid / synthesis slides keep centered.",
+      "left_align_for": ["ARCH-GAP-BAR", "ARCH-SOURCE-MATRIX", "ARCH-SEGMENT-BREAKDOWN", "ARCH-COMPETITOR-MATRIX", "ARCH-JOURNEY-MAP"],
+      "center_align_for": ["ARCH-HERO-STAT", "ARCH-VOICE-GRID", "ARCH-MOAT-HIGHLIGHT", "ARCH-RECOMMENDATION-SPLIT", "ARCH-OPPORTUNITY-THESIS"]
+    },
+    "footer_left": "{agency}  ·  © {year}. All Rights Reserved. Confidential Do Not Distribute.",
+    "footer_right_mode": "agency_mark + divider + client_wordmark",
+    "agency_mark_asset": "assets/redcomm_logo_white.png",
+    "agency_mark_note": "Real Redcomm 'R.' logomark, extracted from the Electrum reference deck (white on transparent, 99×145px, lock aspect ratio at h/w=145/99). Use this image via addFooterBranding — never render the client name alone as the sole footer-right element, and never substitute a different/invented agency mark.",
+    "default_agency": "Redcomm Indonesia",
+    "year": 2026
+  },
+  "icons": {
+    "note": "Electrum's own reference deck uses ordinary single-glyph icons directly in its driver/insight lists (see the 'Why does this happen?' sidebar and the LLM-engine slide: 📰💬🌐⚡🧠✓🤝) — match that plainly, one glyph per line, leading the text run, never more than one per row and never purely decorative filler.",
+    "media": "📰",
+    "conversation": "💬",
+    "network": "🌐",
+    "signal": "⚡",
+    "handshake": "🤝",
+    "chart": "📊",
+    "check": "✓",
+    "cross": "✕",
+    "warn": "⚠",
+    "target": "🎯",
+    "search": "🔍"
+  },
+  "cover_motif": {
+    "note": "Electrum cover/section-break pattern: one real brand/product photo reused across title, section-break, and closing CTA slides with a dark gradient overlay (left-to-right, ~55% black at the text edge fading to ~15% at the image edge) plus a rounded 'search bar' pill graphic wrapping the section label. This is the only sanctioned imagery archetype — never AI-generated decorative art.",
+    "archetype_id": "ARCH-TITLE-PHOTO",
+    "overlay_gradient": ["000000CC", "00000010"],
+    "search_pill": {
+      "stroke_color": "text",
+      "stroke_pt": 2,
+      "corner_radius_in": 0.45,
+      "label_inside": true
+    }
+  },
+  "anti_slop": {
+    "max_accent_hues": 1,
+    "allow_semantic_colors": true,
+    "forbid": [
+      "purple_indigo_gradients",
+      "glassmorphism_stacks",
+      "three_equal_feature_cards_as_default",
+      "ai_generated_decorative_imagery",
+      "multicolor_metric_rainbow",
+      "orange_coral_table_headers",
+      "centered_hero_on_mesh",
+      "emoji_as_decoration"
+    ],
+    "imagery_policy": "Use real brand photography for covers when available. Compose UI mockups from shapes+text. Charts/tables must be native drawing APIs — never raster AI art."
+  },
+  "client_overrides": {
+    "note": "Per deck, override only: colors.accent (+ deep/stroke/banner derived), client name, logos, cover image path. Do not change layout geometry.",
+    "derive_from_accent": ["stroke", "accent_deep", "accent_banner", "bg_insight", "bg_sidebar"]
+  }
+}
